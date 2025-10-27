@@ -20,7 +20,7 @@ public class ChatController {
     @SendTo("/topic/chat.{roomId}")
     public ChatMessage sendMessage(@DestinationVariable String roomId, ChatMessage message) {
         System.out.println("📩 [" + roomId + "] " + message.getSender() + ": " + message.getContent());
-        return message;    // 다시 클라이언트들에게 전달됨
+        return message;
     }
 
 }
