@@ -15,7 +15,7 @@ if (!initialNickname) {
   // 이로써 setNickname(name) 호출로 인한 무한 루프를 근본적으로 막습니다.
   
   // prompt에서 취소 등을 눌러 닉네임이 여전히 비어있다면, 닉네임 설정을 다시 시도합니다.
-  return null; 
+  // return null; 
 }
 
 
