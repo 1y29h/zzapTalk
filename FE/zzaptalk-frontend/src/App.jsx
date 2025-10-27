@@ -1,27 +1,36 @@
 import { useEffect, useState, useRef } from "react";
-// ✅ @stomp/stompjs에서 Client를 import 합니다. (O)
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import "./App.css";
+
+// ⚠️ 닉네임 설정 로직을 useEffect 밖으로 분리하여 무한 렌더링을 방지합니다.
+const initialNickname = localStorage.getItem("nickname");
+
+if (!initialNickname) {
+  const name = prompt("닉네임을 입력하세요") || "익명";
+  localStorage.setItem("nickname", name);
+  // 닉네임을 설정하면 페이지를 새로고침하여 초기화된 상태로 App 컴포넌트가 다시 시작됩니다.
+  window.location.reload(); 
+  // 새로고침되기 전까지 아무것도 렌더링하지 않음
+  // 이로써 setNickname(name) 호출로 인한 무한 루프를 근본적으로 막습니다.
+  
+  // prompt에서 취소 등을 눌러 닉네임이 여전히 비어있다면, 닉네임 설정을 다시 시도합니다.
+  return null; 
+}
+
 
 function App() {
   const [stompClient, setStompClient] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [roomId] = useState("room1");
-  const [nickname, setNickname] = useState(localStorage.getItem("nickname") || "");
+  // 닉네임 상태는 이제 초기값을 외부에서 가져옵니다.
+  const [nickname] = useState(initialNickname); 
   const [connectionStatus, setConnectionStatus] = useState("연결 중...");
   const chatBoxRef = useRef(null);
 
   useEffect(() => {
-    // 닉네임 없으면 입력받기
-    if (!nickname) {
-      const name = prompt("닉네임을 입력하세요") || "익명";
-      localStorage.setItem("nickname", name);
-      setNickname(name);
-    }
-
-    // ✅ 환경 변수에서 백엔드 URL 가져오기
+    // 🔗 환경 변수에서 백엔드 URL 가져오기
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
     console.log("🔗 백엔드 URL:", backendUrl);
 
@@ -52,26 +61,25 @@ function App() {
           content: `${nickname}님이 입장했습니다.`,
           type: "ENTER"
         };
-        // 4. 전송은 client.publish() 사용 (객체 형태로)
+        // 4. 전송은 client.publish() 사용
         client.publish({ destination: `/app/chat.sendMessage.${roomId}`, body: JSON.stringify(enterMsg) });
       },
       
-      // 5. 연결 오류 발생 시 (onStompError 또는 onWebSocketError)
+      // 5. 연결 오류 발생 시 (onStompError)
       onStompError: (frame) => {
         console.error("❌ STOMP 오류:", frame);
         setConnectionStatus("연결 오류 🔴");
       },
       onWebSocketClose: () => {
         console.log("❌ WebSocket 연결 종료 (비정상)");
-        // setConnectionStatus("연결 끊김 🔴"); // 필요하다면 상태 업데이트
       },
       
       // 6. 연결을 바로 시작
-      reconnectDelay: 5000, // 재연결 딜레이
+      reconnectDelay: 5000, 
       debug: (str) => console.log(new Date(), str),
     });
 
-    // 7. 클라이언트 활성화 (연결 시도)
+    // 7. 클라이언트 활성화 (연결 시도 시작)
     client.activate();
 
 
@@ -86,15 +94,14 @@ function App() {
           content: `${nickname}님이 퇴장했습니다.`,
           type: "LEAVE"
         };
+        // 9. 퇴장 메시지 전송 및 연결 비활성화
         client.publish({ destination: `/app/chat.sendMessage.${roomId}`, body: JSON.stringify(leaveMsg) });
-
-        // 9. 연결 비활성화
         client.deactivate(() => console.log("🔌 연결 종료"));
       }
     };
-  }, [roomId, nickname]); // 의존성 배열은 그대로 유지
+  }, [roomId]); // 닉네임은 이제 의존성 배열에서 제외 (변경되지 않으므로)
 
-  // ✅ 새 메시지가 오면 스크롤 아래로 (로직 변경 없음)
+  // ✅ 새 메시지가 오면 스크롤 아래로
   useEffect(() => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -130,13 +137,17 @@ function App() {
     setInput("");
   };
 
-  // ✅ Enter 키로 전송 (로직 변경 없음)
+  // ✅ Enter 키로 전송
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
+
+  // 닉네임이 설정되지 않았다면 (reload 대기 중) 아무것도 렌더링하지 않습니다.
+  if (!nickname) return null;
+
 
   return (
     <div style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 600, margin: "0 auto" }}>
