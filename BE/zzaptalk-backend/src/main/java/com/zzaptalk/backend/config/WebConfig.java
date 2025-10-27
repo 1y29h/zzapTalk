@@ -16,8 +16,9 @@ public class WebConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.setAllowedOrigins(Arrays.asList(
-                "https://ctenidial-homely-frances.ngrok-free.dev",
-                "http://localhost:5173"
+                "https://api.zzaptalk.com",    // 백엔드 도메인
+                "https://zzaptalk.com",        // 프론트엔드 도메인 (민서가 사용할)
+                "http://localhost:5173"        // 로컬 개발용
         ));
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
