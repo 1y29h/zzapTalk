@@ -4,3 +4,7 @@ server:
 spring:
   application:
     name: zzaptalk-backend
+  web:
+    resources:
+      static-locations: classpath:/static/
+      add-mappings: true
