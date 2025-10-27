@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
+// ✅ @stomp/stompjs에서 Client를 import 합니다. (O)
+import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import Stomp from "stompjs";
 import "./App.css";
 
 function App() {
@@ -20,18 +21,19 @@ function App() {
       setNickname(name);
     }
 
-    // ✅ 환경 변수에서 백엔드 URL 가져오기 (없으면 localhost)
+    // ✅ 환경 변수에서 백엔드 URL 가져오기
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
     console.log("🔗 백엔드 URL:", backendUrl);
 
-    // ✅ WebSocket 연결
-    const socket = new SockJS(`${backendUrl}/ws`);
-    const client = Stomp.over(socket);
-
-    // ✅ 연결 성공
-    client.connect(
-      {},
-      () => {
+    // 1. Client 객체 생성 (옵션 기반 설정)
+    const client = new Client({
+      // 2. SockJS를 WebSocket Factory로 사용하도록 설정
+      webSocketFactory: () => {
+        return new SockJS(`${backendUrl}/ws`);
+      },
+      
+      // 3. 연결 성공 시 (onConnect)
+      onConnect: () => {
         console.log("✅ WebSocket 연결 성공");
         setConnectionStatus("연결됨 🟢");
         setStompClient(client);
@@ -50,31 +52,49 @@ function App() {
           content: `${nickname}님이 입장했습니다.`,
           type: "ENTER"
         };
-        client.send(`/app/chat.sendMessage.${roomId}`, {}, JSON.stringify(enterMsg));
+        // 4. 전송은 client.publish() 사용 (객체 형태로)
+        client.publish({ destination: `/app/chat.sendMessage.${roomId}`, body: JSON.stringify(enterMsg) });
       },
-      // ✅ 연결 실패
-      (error) => {
-        console.error("❌ WebSocket 연결 실패:", error);
-        setConnectionStatus("연결 실패 🔴");
-      }
-    );
+      
+      // 5. 연결 오류 발생 시 (onStompError 또는 onWebSocketError)
+      onStompError: (frame) => {
+        console.error("❌ STOMP 오류:", frame);
+        setConnectionStatus("연결 오류 🔴");
+      },
+      onWebSocketClose: () => {
+        console.log("❌ WebSocket 연결 종료 (비정상)");
+        // setConnectionStatus("연결 끊김 🔴"); // 필요하다면 상태 업데이트
+      },
+      
+      // 6. 연결을 바로 시작
+      reconnectDelay: 5000, // 재연결 딜레이
+      debug: (str) => console.log(new Date(), str),
+    });
 
-    // ✅ 컴포넌트 언마운트 시 연결 종료
+    // 7. 클라이언트 활성화 (연결 시도)
+    client.activate();
+
+
+    // 8. ✅ 컴포넌트 언마운트 시 연결 종료
     return () => {
-      if (client && client.connected) {
+      if (client && client.active) { // client.connected 대신 client.active 사용
+        
+        // 퇴장 메시지는 연결이 활성화(active)된 상태에서만 시도
         const leaveMsg = {
           roomId,
           sender: nickname,
           content: `${nickname}님이 퇴장했습니다.`,
           type: "LEAVE"
         };
-        client.send(`/app/chat.sendMessage.${roomId}`, {}, JSON.stringify(leaveMsg));
-        client.disconnect(() => console.log("🔌 연결 종료"));
+        client.publish({ destination: `/app/chat.sendMessage.${roomId}`, body: JSON.stringify(leaveMsg) });
+
+        // 9. 연결 비활성화
+        client.deactivate(() => console.log("🔌 연결 종료"));
       }
     };
-  }, [roomId, nickname]);
+  }, [roomId, nickname]); // 의존성 배열은 그대로 유지
 
-  // ✅ 새 메시지가 오면 스크롤 아래로
+  // ✅ 새 메시지가 오면 스크롤 아래로 (로직 변경 없음)
   useEffect(() => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -85,7 +105,7 @@ function App() {
   const sendMessage = () => {
     console.log("📡 stompClient 상태:", stompClient);
     
-    if (!stompClient || !stompClient.connected) {
+    if (!stompClient || !stompClient.active) { // client.connected 대신 client.active 사용
       console.warn("⚠️ 연결 안됨: 메시지 전송 불가");
       alert("서버와 연결되지 않았습니다. 페이지를 새로고침해주세요.");
       return;
@@ -105,11 +125,12 @@ function App() {
     };
 
     console.log("📤 전송:", msg);
-    stompClient.send(`/app/chat.sendMessage.${roomId}`, {}, JSON.stringify(msg));
+    // 10. 전송은 stompClient.publish() 사용
+    stompClient.publish({ destination: `/app/chat.sendMessage.${roomId}`, body: JSON.stringify(msg) });
     setInput("");
   };
 
-  // ✅ Enter 키로 전송
+  // ✅ Enter 키로 전송 (로직 변경 없음)
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
