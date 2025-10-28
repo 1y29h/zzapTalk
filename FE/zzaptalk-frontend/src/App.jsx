@@ -6,19 +6,6 @@ import "./App.css";
 // ⚠️ 닉네임 설정 로직을 useEffect 밖으로 분리하여 무한 렌더링을 방지합니다.
 const initialNickname = localStorage.getItem("nickname");
 
-if (!initialNickname) {
-  const name = prompt("닉네임을 입력하세요") || "익명";
-  localStorage.setItem("nickname", name);
-  // 닉네임을 설정하면 페이지를 새로고침하여 초기화된 상태로 App 컴포넌트가 다시 시작됩니다.
-  window.location.reload(); 
-  // 새로고침되기 전까지 아무것도 렌더링하지 않음
-  // 이로써 setNickname(name) 호출로 인한 무한 루프를 근본적으로 막습니다.
-  
-  // prompt에서 취소 등을 눌러 닉네임이 여전히 비어있다면, 닉네임 설정을 다시 시도합니다.
-  return null; 
-}
-
-
 function App() {
   const [stompClient, setStompClient] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -30,6 +17,11 @@ function App() {
   const chatBoxRef = useRef(null);
 
   useEffect(() => {
+    if (!localStorage.getItem("nickname")) {
+      const name = prompt("닉네임을 입력하세요") || "익명";
+      localStorage.setItem("nickname", name);
+      window.location.reload();
+    }
     // 🔗 환경 변수에서 백엔드 URL 가져오기
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
     console.log("🔗 백엔드 URL:", backendUrl);
