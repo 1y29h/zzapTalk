@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data // getter, setter 자동 생성
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessage {

@@ -1,37 +1,55 @@
-HELP.md
-.gradle
+# -----------------------------------------------------------------
+# BUILD ARTIFACTS
+# -----------------------------------------------------------------
+target/
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# -----------------------------------------------------------------
+# LOGS & TEMP
+# -----------------------------------------------------------------
+logs
+*.log
+tmp/
+temp/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# -----------------------------------------------------------------
+# DEPENDENCY MANAGEMENT
+# -----------------------------------------------------------------
+# Gradle
+.gradle
+!/gradle/wrapper/gradle-wrapper.jar
+
+# Maven
+/target/
+
+# -----------------------------------------------------------------
+# IDE FILES (IntelliJ, VS Code, STS)
+# -----------------------------------------------------------------
+.idea/
 *.iml
 *.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
+*.iws
+.settings/
+.apt_generated
+.classpath
+.project
 .vscode/
+
+# -----------------------------------------------------------------
+# 🚨 민감한 정보 및 개인 환경 설정 🚨
+# -----------------------------------------------------------------
+
+# Firebase Admin SDK 키 파일 (나중에 추가 시)
+firebase-adminsdk-*.json
+*.p12
+
+# 운영 환경 설정 파일 (DB 비밀번호, 시크릿 키 포함 가능성 높음)
+application-prod.yml
+application-prod.properties
+application-dev.yml
+application-local.yml
