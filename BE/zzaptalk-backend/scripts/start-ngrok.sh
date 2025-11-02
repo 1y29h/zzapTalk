@@ -1,6 +1,4 @@
 #!/bin/bash
-# zzaptalk-backend/scripts/start-ngrok.sh
-# 백엔드 ngrok 실행 + .env 자동 생성 + Git 자동 push
 
 BACKEND_PORT=8080
 FRONT_PATH="../../FE/zzaptalk-frontend"
