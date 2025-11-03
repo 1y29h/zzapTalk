@@ -1,0 +1,55 @@
+package com.zzaptalk.backend.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor    // JPA는 기본 생성자 필수
+@AllArgsConstructor
+@Builder
+@Table(name = "user")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // -------------------------------------------------------------------------
+    // 로그인/식별자
+    // -------------------------------------------------------------------------
+
+    // 전화번호
+    @Column(nullable = false, unique = true)
+    private String phoneNum;
+
+    // 이메일
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    // 비밀번호
+    @Column(nullable = false, length = 255)    // 해싱(단방향 암호화) 대비 길이 확장
+    private String pwd;
+
+    // -------------------------------------------------------------------------
+    // 기타 프로필 및 식별 정보
+    // -------------------------------------------------------------------------
+
+    // 본명
+    @Column(nullable = false)
+    private String name;
+
+    // 닉네임
+    @Column(nullable = false)
+    private String nickname;
+
+    // 주민번호 7자리
+    @Column(nullable = false, length = 255)    // 양방향 암호화를 적용 -> 길이가 길어져야 함
+    private String RRN;
+
+    // ZzapTalk ID
+    @Column(unique = true)
+    private String zzapID;
+
+}
