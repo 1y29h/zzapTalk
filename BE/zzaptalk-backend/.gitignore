@@ -53,3 +53,5 @@ application-prod.yml
 application-prod.properties
 application-dev.yml
 application-local.yml
+
+application.yml
