@@ -25,10 +25,6 @@ public class User {
     @Convert(converter = AES256Converter.class)
     private String phoneNum;
 
-    // 이메일
-    @Column(nullable = false, unique = true)
-    private String email;
-
     // 비밀번호
     @Column(nullable = false, length = 255)    // 해싱(단방향 암호화) 대비 길이 확장
     private String pwd;
@@ -48,6 +44,10 @@ public class User {
     // 주민번호 7자리
     @Convert(converter = AES256Converter.class)
     private String rrn;
+
+    // 이메일
+    @Column(unique = true)
+    private String email;
 
     // ZzapTalk ID
     @Column(unique = true)
