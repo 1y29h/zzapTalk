@@ -41,7 +41,7 @@ public class UserService {
                 .pwd(encodedPwd)    // 암호화된 비밀번호 저장
                 .name(request.getName())
                 .nickname(request.getName())    // 닉네임: 본명으로 초기 설정
-                .RRN(request.getRRN())
+                .rrn(request.getRrn())
                 .zzapID(null)   // ZzapTalk ID: null로 초기 설정
                 .build();
 
