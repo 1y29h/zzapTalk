@@ -17,7 +17,7 @@ public class UserSignUpRequest {
     @Email @NotBlank private String email;
     @NotBlank private String pwd;
     @NotBlank private String name;
-    @NotBlank private String RRN;
+    @NotBlank private String rrn;
     private String nickname;
     private String zzapID;
 
