@@ -46,7 +46,7 @@ public class User {
 
     // 주민번호 7자리
     @Column(nullable = false, length = 255)    // 양방향 암호화를 적용 -> 길이가 길어져야 함
-    private String RRN;
+    private String rrn;
 
     // ZzapTalk ID
     @Column(unique = true)
