@@ -1,5 +1,6 @@
 package com.zzaptalk.backend.entity;
 
+import com.zzaptalk.backend.util.AES256Converter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,7 +22,7 @@ public class User {
     // -------------------------------------------------------------------------
 
     // 전화번호
-    @Column(nullable = false, unique = true)
+    @Convert(converter = AES256Converter.class)
     private String phoneNum;
 
     // 이메일
@@ -45,7 +46,7 @@ public class User {
     private String nickname;
 
     // 주민번호 7자리
-    @Column(nullable = false, length = 255)    // 양방향 암호화를 적용 -> 길이가 길어져야 함
+    @Convert(converter = AES256Converter.class)
     private String rrn;
 
     // ZzapTalk ID
