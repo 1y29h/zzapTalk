@@ -16,6 +16,10 @@ logs
 *.log
 tmp/
 temp/
+# macOS에서 생성되는 폴더 메타데이터
+**/.DS_Store
+# Vim 스왑 파일
+**/*.swp
 
 # -----------------------------------------------------------------
 # DEPENDENCY MANAGEMENT
@@ -54,3 +58,8 @@ application-prod.properties
 application-dev.yml
 application-local.yml
 application.yml
+
+# 🔑 일반적인 키 및 시크릿 파일 확장자 추가
+*.key
+*.pem
+*.cer
