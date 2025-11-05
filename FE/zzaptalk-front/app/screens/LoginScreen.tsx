@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import styles from "../styles/Login.module";
+import styles from "../../src/styles/loginsignup/Login.module";
 
 // 010-0000-0000 포맷터
 const formatPhone = (raw: string) => {
@@ -44,11 +44,12 @@ function Checkbox({
 export default function LoginScreen() {
   const router = useRouter();
 
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); //usestate 상태관리
   const [password, setPassword] = useState("");
   const [autoLogin, setAutoLogin] = useState(false);
 
   const canSubmit = useMemo(() => {
+    //useMemo 성능 최적화
     const phoneOk = /^\d{3}-\d{3,4}-\d{4}$/.test(phone);
     return phoneOk && password.length > 0;
   }, [phone, password]);
@@ -74,7 +75,7 @@ export default function LoginScreen() {
         {/* 로고 (카메라/상태바 아래) */}
         <View style={styles.logoHeader}>
           <Image
-            source={require("../../assets/images/loginlog.png")}
+            source={require("../../src/assets/images/loginlog.png")}
             style={styles.logoImg}
           />
         </View>
@@ -121,14 +122,19 @@ export default function LoginScreen() {
           {/* 하단 링크 */}
           <View style={styles.linksRow}>
             <Pressable onPress={() => Alert.alert("아이디 찾기")} hitSlop={8}>
+              {" "}
               <Text style={styles.linkText}>아이디 찾기</Text>
             </Pressable>
             <View style={styles.dot} />
             <Pressable onPress={() => Alert.alert("비밀번호 찾기")} hitSlop={8}>
+              {" "}
               <Text style={styles.linkText}>비밀번호 찾기</Text>
             </Pressable>
             <View style={styles.dot} />
-            <Pressable onPress={() => router.push("/signup")} hitSlop={8}>
+            <Pressable
+              onPress={() => router.push("/screens/SignupScreen")}
+              hitSlop={8}
+            >
               <Text style={styles.linkText}>회원가입</Text>
             </Pressable>
           </View>
