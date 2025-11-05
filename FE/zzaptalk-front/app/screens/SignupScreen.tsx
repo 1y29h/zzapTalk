@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signup } from "../../src/services/auth";
-import styles from "../styles/Signup.module";
+import styles from "../../src/styles/loginsignup/Signup.module";
 
 // 010-0000-0000 포맷
 const formatPhone = (raw: string) => {
@@ -125,7 +125,7 @@ export default function SignupScreen() {
               <Text style={styles.backButtonText}>‹</Text>
             </Pressable>
             <Image
-              source={require("../../assets/images/signuplog.png")}
+              source={require("../../src/assets/images/signuplog.png")}
               style={styles.logoImg}
             />
           </View>
