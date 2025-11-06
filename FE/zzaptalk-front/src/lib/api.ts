@@ -68,3 +68,5 @@ export async function del<T>(url: string): Promise<T> {
   const { data } = await api.delete<T>(url);
   return data;
 }
+// 맨 아래 어딘가에 한 줄 추가(개발용 로그)
+console.log("[API] BASE =", BASE);

@@ -122,19 +122,14 @@ export default function LoginScreen() {
           {/* 하단 링크 */}
           <View style={styles.linksRow}>
             <Pressable onPress={() => Alert.alert("아이디 찾기")} hitSlop={8}>
-              {" "}
               <Text style={styles.linkText}>아이디 찾기</Text>
             </Pressable>
             <View style={styles.dot} />
             <Pressable onPress={() => Alert.alert("비밀번호 찾기")} hitSlop={8}>
-              {" "}
               <Text style={styles.linkText}>비밀번호 찾기</Text>
             </Pressable>
             <View style={styles.dot} />
-            <Pressable
-              onPress={() => router.push("/screens/SignupScreen")}
-              hitSlop={8}
-            >
+            <Pressable onPress={() => router.push("/signup")} hitSlop={8}>
               <Text style={styles.linkText}>회원가입</Text>
             </Pressable>
           </View>

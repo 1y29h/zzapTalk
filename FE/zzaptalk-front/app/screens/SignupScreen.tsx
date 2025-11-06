@@ -13,16 +13,19 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { signup } from "../../src/services/auth";
 import styles from "../../src/styles/loginsignup/Signup.module";
+// (백엔드 연결 시 주석 해제)
+// import { signup } from "../../src/services/auth";
 
-// 010-0000-0000 포맷
+// 010-0000-0000 포맷터
 const formatPhone = (raw: string) => {
   const only = raw.replace(/\D/g, "").slice(0, 11);
   if (only.length < 4) return only;
   if (only.length < 8) return `${only.slice(0, 3)}-${only.slice(3)}`;
   return `${only.slice(0, 3)}-${only.slice(3, 7)}-${only.slice(7)}`;
 };
+// 숫자만 남기기
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -38,10 +41,10 @@ export default function SignupScreen() {
   const [rrnFront, setRrnFront] = useState("");
   const [rrnBack1, setRrnBack1] = useState("");
 
-  // 전화번호 (인증 제외, 단순 입력만)
+  // 전화번호
   const [phone, setPhone] = useState("");
 
-  // 로딩 상태
+  // 로딩
   const [loadingSignup, setLoadingSignup] = useState(false);
 
   // 유효성
@@ -63,14 +66,24 @@ export default function SignupScreen() {
     [name, pwdOk, pwdSame, rrnFrontOk, rrnBack1Ok, phoneOk, loadingSignup]
   );
 
-  const onlyDigits = (v: string) => v.replace(/\D/g, "");
   const onChangeRrnFront = (v: string) =>
     setRrnFront(onlyDigits(v).slice(0, 6));
   const onChangeRrnBack1 = (v: string) =>
     setRrnBack1(onlyDigits(v).slice(0, 1));
 
-  // 회원가입 제출
+  // 제출
   const onSubmit = async () => {
+    console.log("[BTN] pressed, canSubmit=", canSubmit);
+
+    // ✅ 테스트 전용: 백엔드 호출 생략하고 바로 이동 (환경변수로 제어)
+    const BYPASS = __DEV__ && process.env.EXPO_PUBLIC_BYPASS_SIGNUP === "1";
+    if (BYPASS) {
+      console.log("[SIGNUP] BYPASS → /login");
+      router.replace("/login");
+      return;
+    }
+
+    // 입력 검증
     if (!canSubmit) {
       const msgs: string[] = [];
       if (name.trim().length < 2) msgs.push("이름");
@@ -87,28 +100,26 @@ export default function SignupScreen() {
       phoneNum: phone.replace(/\D/g, ""),
       pwd,
       name: name.trim(),
-      rrn: `${rrnFront}${rrnBack1}`,
+      rrn: `${rrnFront}${rrnBack1}`, // 서버에서 실제 필요 여부 확인 권장
     };
 
     try {
       setLoadingSignup(true);
-      const res = await signup(payload);
-      if (!res.ok) throw new Error(res.message || "회원가입 실패");
+      console.log("[SIGNUP] call api", payload);
+      // 백엔드 붙일 때 주석 해제
+      // await signup(payload);
 
-      if (Platform.OS === "web") {
-        router.replace("/");
-        return;
-      }
-      Alert.alert("회원가입 완료", "가입이 완료되었습니다.", [
-        { text: "로그인으로", onPress: () => router.replace("/") },
-      ]);
+      console.log("[SIGNUP] success → /login");
+      router.replace("/login");
     } catch (e: any) {
+      console.log("[SIGNUP] error", e?.status, e?.message, e?.data);
       Alert.alert("회원가입 실패", e?.message ?? "잠시 후 다시 시도해 주세요.");
     } finally {
       setLoadingSignup(false);
     }
   };
 
+  // 화면
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -116,8 +127,8 @@ export default function SignupScreen() {
     >
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={styles.scrollPad}
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.scrollPad, { flexGrow: 1 }]}
+          keyboardShouldPersistTaps="always"
         >
           {/* 로고 + 뒤로가기 */}
           <View style={styles.logoHeader}>
@@ -127,6 +138,7 @@ export default function SignupScreen() {
             <Image
               source={require("../../src/assets/images/signuplog.png")}
               style={styles.logoImg}
+              resizeMode="contain" // 경고 해결
             />
           </View>
 
@@ -244,7 +256,7 @@ export default function SignupScreen() {
             </Text>
           )}
 
-          {/* 전화번호 (인증 관련 UI/기능은 비활성화됨) */}
+          {/* 전화번호 */}
           <Text style={styles.label}>전화번호</Text>
           <TextInput
             value={formatPhone(phone)}
@@ -262,20 +274,13 @@ export default function SignupScreen() {
             ]}
           />
 
-          {/* 인증번호 관련 UI 전부 비활성화 */}
-          {/* 
-            // 인증요청 / 재요청 / 인증번호 입력 / 확인 기능은
-            // 현재 서버 미구현 상태로 인해 비활성화 처리됨.
-            // 향후 requestSmsCode(), verifySmsCode() 연결 시 복원 예정.
-          */}
-
           {/* 제출 */}
           <Pressable
             onPress={onSubmit}
-            disabled={!canSubmit}
+            disabled={false} // ← 이동만 확인할 때는 강제 활성화
+            // 테스트 끝나면 disabled={!canSubmit} 로 되돌리기
             style={({ pressed }) => [
               styles.submitBtn,
-              !canSubmit && styles.submitBtnDisabled,
               pressed && { opacity: 0.9 },
             ]}
           >
