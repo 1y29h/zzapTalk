@@ -1,22 +1,30 @@
 // src/services/auth.ts
-import { post } from "../lib/api";
+import { api } from "../lib/api";
 
-// 서버 경로(프리픽스 /api 포함)
 const AUTH = {
-  SIGNUP: "/api/auth/signup",
+  SIGNUP: "/api/v1/users/signup", // 백엔드 경로에 맞게 확인
   SMS_REQUEST: "/api/auth/sms/request",
   SMS_VERIFY: "/api/auth/sms/verify",
 };
 
 // 타입
 export type SignupPayload = {
-  phoneNum: string; // 숫자만
+  phoneNum: string;
   pwd: string;
   name: string;
-  rrn: string; // 앞 7자리(현재는 앞6 + 뒤1을 합쳐 보냄)
+  rrn: string;
 };
 
-// --- SMS (나중에 붙일 예정이면 유지) ---
+// 회원가입 (text/plain 응답 대응)
+export async function signup(payload: SignupPayload) {
+  const res = await api.post(AUTH.SIGNUP, payload, {
+    responseType: "text",
+    transformResponse: (v) => v,
+  });
+  return res.data;
+}
+
+// --- (옵션) SMS 관련 ---
 export type BaseResp = {
   ok?: boolean;
   success?: boolean;
@@ -32,19 +40,11 @@ const isOk = (r: BaseResp | any) => {
 };
 
 export async function requestSmsCode(phoneNum: string) {
-  const res = await post<BaseResp>(AUTH.SMS_REQUEST, { phoneNum });
+  const res = await api.post<BaseResp>(AUTH.SMS_REQUEST, { phoneNum });
   return { ok: isOk(res), ...res };
 }
 
 export async function verifySmsCode(phoneNum: string, code: string) {
-  const res = await post<BaseResp>(AUTH.SMS_VERIFY, { phoneNum, code });
+  const res = await api.post<BaseResp>(AUTH.SMS_VERIFY, { phoneNum, code });
   return { ok: isOk(res), ...res };
-}
-
-// --- 회원가입 ---
-// post()는 api 인터셉터를 사용하므로 4xx/5xx면 ApiError를 throw 합니다.
-// 따라서 여기선 성공만 반환하고, 화면에서는 await 통과 후 라우팅하면 됩니다.
-export async function signup(payload: SignupPayload) {
-  const data = await post<{ user?: any }>(AUTH.SIGNUP, payload);
-  return data.user ?? true; // 성공이면 truthy
 }

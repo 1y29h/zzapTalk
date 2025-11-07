@@ -9,16 +9,23 @@ export default StyleSheet.create({
 
   /** 공통 로고 헤더: 높이 고정해서 회원가입과 Y위치 동일 */
   logoHeader: {
-    height: 180, // ← 필요시 160~220 사이에서 같이 조절
+    marginTop: 60,
+    height: 200, // ← 필요시 160~220 사이에서 같이 조절
     alignItems: "center",
     justifyContent: "flex-start",
-    marginBottom: 8,
+    marginBottom: 16,
     position: "relative",
   },
   logoImg: { width: 120, height: 120, resizeMode: "contain" },
 
   /** 폼 */
-  form: { marginTop: 48 },
+  form: {
+    marginTop: 12,
+    width: "100%",
+    maxWidth: 400,
+    alignSelf: "center",
+    paddingHorizontal: 10,
+  },
   label: {
     fontSize: 14,
     fontWeight: "700",

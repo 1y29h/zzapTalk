@@ -12,7 +12,9 @@ export class ApiError extends Error {
   }
 }
 
-const BASE = (process.env.EXPO_PUBLIC_API_BASE || "").replace(/\/+$/, "");
+const BASE = (
+  process.env.EXPO_PUBLIC_API_BASE || "https://api.zzaptalk.com"
+).replace(/\/+$/, "");
 if (!BASE) {
   // 개발 중 변수 누락 빨리 알림
   // eslint-disable-next-line no-console

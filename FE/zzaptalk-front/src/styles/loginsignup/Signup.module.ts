@@ -1,15 +1,20 @@
 import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingHorizontal: 24, // 👈 로그인과 동일
+    justifyContent: "center",
+  },
   scrollPad: { paddingHorizontal: 24, paddingBottom: 24 },
 
   /** 상단: 뒤로가기 절대배치 + 고정 높이 로고 (로그인과 동일 Y) */
   logoHeader: {
     height: 180, // ← 로그인과 동일 값
     alignItems: "center",
-    justifyContent: "flex-start",
-    marginBottom: 8,
+    justifyContent: "center",
+    marginBottom: 24,
     position: "relative",
   },
   backAbs: {
@@ -24,12 +29,19 @@ export default StyleSheet.create({
   backButtonText: { fontSize: 28, color: "#222" },
   logoImg: { width: 120, height: 120, resizeMode: "contain" },
 
+  form: {
+    width: "100%",
+    maxWidth: 400, // 로그인과 동일한 폭
+    alignSelf: "center", // 가운데 정렬
+    paddingHorizontal: 20,
+    marginTop: 16, // 살짝 안쪽 여백
+  },
   /** 레이블/인풋 */
   label: {
     fontSize: 14,
     fontWeight: "700",
     color: "#222",
-    marginTop: 18,
+    marginTop: 12,
     marginBottom: 8,
   },
   input: {
