@@ -17,13 +17,13 @@ public class UserService {
     private final PasswordEncoder passwordEncoder; // SecurityConfig에서 주입
 
     // -------------------------------------------------------------------------
-    // 회원가입 처리 로직 (비밀번호 해싱 포함)
+    // 회원가입
     // -------------------------------------------------------------------------
 
     @Transactional
     public void signUp(UserSignUpRequest request) {
 
-        // 중복 검사
+        // 전화번호 중복 검사
         if (userRepository.existsByPhoneNum(request.getPhoneNum())) {
             throw new IllegalArgumentException("이미 가입된 전화번호입니다.");
         }
@@ -34,9 +34,9 @@ public class UserService {
         // User 엔티티 생성
         User newUser = User.builder()
                 .phoneNum(request.getPhoneNum())
-                .pwd(encodedPwd)    // 암호화된 비밀번호 저장
+                .pwd(encodedPwd)                // 암호화된 비밀번호 저장
                 .name(request.getName())
-                .nickname(request.getName())    // 닉네임: 본명으로 초기 설정
+                .nickname(request.getName())    // 닉네임 초기 설정: 본명
                 .rrn(request.getRrn())
                 .email(null)
                 .zzapID(null)
