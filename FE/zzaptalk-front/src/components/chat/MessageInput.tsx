@@ -9,9 +9,13 @@ import {
 } from "react-native";
 import styles from "../../styles/chat/MessageInput.module";
 
-// 웹 키 이벤트(간단 버전): key + (웹에서만 존재할 수 있는) shiftKey
+// 웹 키 이벤트: 조합중 여부/키코드까지 확장
 type WebKeyEvent = NativeSyntheticEvent<
-  { key: string } & { shiftKey?: boolean }
+  { key: string } & {
+    shiftKey?: boolean;
+    isComposing?: boolean;
+    keyCode?: number;
+  }
 >;
 
 export default function MessageInput({
@@ -29,11 +33,15 @@ export default function MessageInput({
   };
 
   const handleKeyPress = (e: WebKeyEvent) => {
-    if (
-      Platform.OS === "web" &&
-      e.nativeEvent.key === "Enter" &&
-      !e.nativeEvent.shiftKey
-    ) {
+    if (Platform.OS !== "web") return;
+
+    const ne: any = e.nativeEvent;
+
+    // ✅ 한글 등 IME 조합 중 엔터는 무시
+    if (ne?.isComposing || ne?.keyCode === 229) return;
+
+    // ✅ 엔터로 전송, Shift+Enter는 줄바꿈
+    if (ne?.key === "Enter" && !ne?.shiftKey) {
       e.preventDefault?.();
       submit();
     }
@@ -57,7 +65,11 @@ export default function MessageInput({
           placeholder="메세지 입력"
           placeholderTextColor="#b5b5b5"
           multiline
-          onKeyPress={handleKeyPress} // ← 여기서 사용
+          onKeyPress={handleKeyPress}
+          // 웹 힌트(선택): 엔터키에 "전송" 표시
+          // @ts-ignore  (react-native-web 전용 속성)
+          enterKeyHint="send"
+          blurOnSubmit={false}
         />
         <Pressable style={styles.sendFab} onPress={submit}>
           <Ionicons name="send" size={16} color="#fff" />
