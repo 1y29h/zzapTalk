@@ -5,17 +5,11 @@ const GRAY = "#EFEFEF";
 const TIME = "#969696";
 
 export default StyleSheet.create({
-  wrap: {
-    marginBottom: 8,
-  },
+  wrap: { marginBottom: 8 },
   wrapMine: { alignItems: "flex-end" },
   wrapOther: { alignItems: "flex-start" },
 
-  name: {
-    fontSize: 11,
-    color: "#777",
-    marginBottom: 2,
-  },
+  name: { fontSize: 11, color: "#777", marginBottom: 2 },
 
   row: {
     flexDirection: "row",
@@ -30,7 +24,7 @@ export default StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     maxWidth: "75%",
-    flexShrink: 0, // ✅ shrink 막기 (세로로 안쌓이게)
+    flexShrink: 1, //  버블이 내용에 맞춰 줄어들 수 있게
   },
   myBubble: {
     backgroundColor: PURPLE,
@@ -47,12 +41,11 @@ export default StyleSheet.create({
     fontSize: 14,
     color: "#1b1b1b",
     lineHeight: 20,
-
-    // ✅ 웹에서 한 줄 유지 (카톡처럼 줄 안 바뀌게)
     ...(Platform.OS === "web"
       ? {
-          wordBreak: "keep-all" as any,
-          whiteSpace: "nowrap" as any, // 🔥 핵심: 자동 줄바꿈 금지
+          wordBreak: "keep-all" as any, //  한글은 어절 기준
+          whiteSpace: "pre-wrap" as any, //  줄바꿈 허용 + 공백/개행 유지
+          overflowWrap: "anywhere" as any, // 공백 없는 초장문도 버블 안에서 강제 줄바꿈
         }
       : {}),
   },
