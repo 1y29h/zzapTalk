@@ -30,7 +30,7 @@ export default StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     maxWidth: "75%",
-    flexShrink: 1, // 텍스트가 길어도 말풍선이 자연스럽게 줄바꿈
+    flexShrink: 0, // ✅ shrink 막기 (세로로 안쌓이게)
   },
   myBubble: {
     backgroundColor: PURPLE,
@@ -47,11 +47,12 @@ export default StyleSheet.create({
     fontSize: 14,
     color: "#1b1b1b",
     lineHeight: 20,
-    // 웹에서 한글 단어(어절) 단위로 줄바꿈
+
+    // ✅ 웹에서 한 줄 유지 (카톡처럼 줄 안 바뀌게)
     ...(Platform.OS === "web"
       ? {
-          wordBreak: "keep-all" as any, // RN Web 전용
-          whiteSpace: "pre-wrap" as any, // \n 유지 + 줄바꿈 허용
+          wordBreak: "keep-all" as any,
+          whiteSpace: "nowrap" as any, // 🔥 핵심: 자동 줄바꿈 금지
         }
       : {}),
   },
