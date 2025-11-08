@@ -8,6 +8,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity    // Spring Security 활성화
@@ -20,24 +22,39 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF (Cross-Site Request Forgery) 보호 비활성화
-                // REST API 서버에서는 보통 세션 대신 토큰 기반 인증을 사용하므로 비활성화
+                // CORS 설정
+                .cors(cors -> cors
+                        .configurationSource(request -> {
+                            CorsConfiguration config = new CorsConfiguration();
+                            // React 개발 서버 주소 허용 (필수)
+                            config.setAllowedOrigins(Arrays.asList(
+                                    "http://localhost:3000",
+                                    "http://localhost:8081",    // 민서 React 포트
+                                    "https://zzaptalk.com/",
+                                    "https://libelously-reliant-garland.ngrok-free.dev"));
+                            // 모든 메서드(POST, GET 등) 허용
+                            config.setAllowedMethods(Arrays.asList("POST", "GET", "PUT", "DELETE", "OPTIONS"));
+                            // 인증 정보(쿠키, 헤더) 전송 허용
+                            config.setAllowCredentials(true);
+                            // 모든 헤더 허용
+                            config.setAllowedHeaders(Arrays.asList("*"));
+                            return config;
+                        })
+                )
+
+                // CSRF(Cross-Site Request Forgery) 보호 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // 폼 로그인 비활성화
-                // API 서버는 클라이언트에서 직접 인증 정보를 받아 처리하므로 불필요
                 .formLogin(AbstractHttpConfigurer::disable)
 
                 // HTTP 기본 인증 비활성화
-                // 사용자 인증은 JWT 등의 토큰으로 처리할 예정
                 .httpBasic(AbstractHttpConfigurer::disable)
 
                 // 인가(접근 권한) 설정
                 .authorizeHttpRequests(auth -> auth
                         // 회원가입 API와 WebSocket 연결 경로는 인증 없이 접근 허용
-                        // 현재는 모든 경로를 열어둠. 나중에 제한 필요
                         .requestMatchers("/api/v1/users/signup", "/ws/**").permitAll()
-
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 );
