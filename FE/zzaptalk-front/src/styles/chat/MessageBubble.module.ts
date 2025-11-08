@@ -34,17 +34,18 @@ export default StyleSheet.create({
   myBubble: {
     backgroundColor: PURPLE,
     borderBottomRightRadius: 4,
-    marginRight: 6, // 시간과 간격
+    // 내 메시지에서는 시간(왼쪽)과 간격은 timeMine에서 처리
+    marginLeft: 6,
   },
   otherBubble: {
     backgroundColor: GRAY,
     borderBottomLeftRadius: 4,
-    marginRight: 6,
+    marginRight: 6, // 시간과 간격(오른쪽)
   },
 
   text: { fontSize: 14, color: "#1b1b1b" },
 
   time: { fontSize: 11, color: TIME },
-  timeMine: { alignSelf: "flex-end" },
-  timeOther: { alignSelf: "flex-end" },
+  timeMine: { alignSelf: "flex-end", marginRight: 6 }, // [시간, 버블] 간격
+  timeOther: { alignSelf: "flex-end" }, // [버블, 시간] 간격은 bubble에서
 });
