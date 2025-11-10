@@ -3,7 +3,7 @@ import { api } from "../lib/api";
 
 /** ========================
  * 엔드포인트
- *  - 로그인은 현재 /api/v1/users/login 로 동작 (스크린샷 기준)
+ *  - 로그인은 현재 /api/v1/users/login 로 동작 
  *  - 회원가입은 /api/v1/users/signup
  * ======================== */
 const AUTH = {

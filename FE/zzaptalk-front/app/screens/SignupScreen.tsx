@@ -1,3 +1,4 @@
+// app/screens/SignupScreen.tsx
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
@@ -10,13 +11,12 @@ import {
   Text,
   TextInput,
   View,
-  Keyboard, // ✅ 추가
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signup } from "../../src/services/auth";
 import styles from "../../src/styles/loginsignup/Signup.module";
 
-// 010-0000-0000 포맷터
 const formatPhone = (raw: string) => {
   const only = raw.replace(/\D/g, "").slice(0, 11);
   if (only.length < 4) return only;
@@ -61,13 +61,11 @@ export default function SignupScreen() {
     setRrnBack1(onlyDigits(v).slice(0, 1));
 
   const onSubmit = async () => {
-    // ✅ 포커스/키보드 해제 (웹 접근성 경고 예방)
     Keyboard.dismiss();
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur?.();
     }
-
-    if (loadingSignup) return; // ✅ 중복 제출 가드
+    if (loadingSignup) return;
 
     if (!canSubmit) {
       const msgs: string[] = [];
@@ -90,14 +88,12 @@ export default function SignupScreen() {
 
     try {
       setLoadingSignup(true);
-      await signup(payload); // text/plain: "회원가입이 성공적으로 완료되었습니다."
-      // ✅ 이동 전 포커스 한번 더 정리
+      await signup(payload); // 서버: text/plain 메시지
       Keyboard.dismiss();
       if (Platform.OS === "web" && typeof document !== "undefined") {
         (document.activeElement as HTMLElement | null)?.blur?.();
       }
       Alert.alert("회원가입 완료", "로그인 화면으로 이동합니다.");
-      // 다음 프레임에 안전하게 이동
       requestAnimationFrame(() => router.replace("/login"));
     } catch (e: any) {
       Alert.alert("회원가입 실패", e?.message ?? "잠시 후 다시 시도해 주세요.");
@@ -114,7 +110,7 @@ export default function SignupScreen() {
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={[styles.scrollPad, { flexGrow: 1 }]}
-          keyboardShouldPersistTaps="handled" // ✅ 권장값
+          keyboardShouldPersistTaps="handled"
         >
           {/* 상단 로고 & 뒤로가기 */}
           <View style={styles.logoHeader}>
@@ -246,7 +242,7 @@ export default function SignupScreen() {
           <Text style={styles.label}>전화번호</Text>
           <TextInput
             value={formatPhone(phone)}
-            onChangeText={(v) => setPhone(onlyDigits(v).slice(0, 11))} // ✅ 11자리 제한
+            onChangeText={(v) => setPhone(onlyDigits(v).slice(0, 11))}
             keyboardType="phone-pad"
             placeholder="휴대전화 번호 입력"
             placeholderTextColor="#b7b7c2"
