@@ -24,10 +24,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // ✅ 애니메이션용 값
+  // 에러 메시지 페이드인
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  // errorMsg 바뀔 때마다 fade-in 효과
   useEffect(() => {
     if (errorMsg) {
       fadeAnim.setValue(0);
@@ -48,7 +46,7 @@ export default function LoginScreen() {
 
   const canSubmit = useMemo(() => {
     const phoneOk = /^\d{3}-\d{3,4}-\d{4}$/.test(phone);
-    return phoneOk && password.length > 0 && !loading;
+    return phoneOk && password.trim().length > 0 && !loading;
   }, [phone, password, loading]);
 
   const onSubmit = async () => {
@@ -61,17 +59,19 @@ export default function LoginScreen() {
         (document.activeElement as HTMLElement | null)?.blur?.();
       }
 
-      const payload = { phoneNum: phone.replace(/\D/g, ""), pwd: password };
-      const jwt = await login(payload);
+      const payload = {
+        phoneNum: phone.replace(/\D/g, ""),
+        pwd: password.trim(),
+      };
+
+      // 서버 응답 문자열(JWT) 깨끗하게 정리
+      const raw = await login(payload);
+      const jwt = String(raw).trim().replace(/^"|"$/g, "");
+
       await startSession(jwt);
       router.replace("/");
-    } catch (e: any) {
-      const msg =
-        e?.message ||
-        e?.data?.message ||
-        "로그인에 실패했습니다. 아이디/비밀번호를 확인해 주세요.";
-      console.warn("[LOGIN ERROR]", msg);
-      setErrorMsg(msg);
+    } catch {
+      setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ export default function LoginScreen() {
             <TextInput
               value={phone}
               onChangeText={(v) => setPhone(formatPhone(v))}
-              keyboardType="number-pad"
+              keyboardType="phone-pad"
               placeholder="010-0000-0000"
               placeholderTextColor="#b7b7b7"
               style={styles.input}
@@ -154,7 +154,7 @@ export default function LoginScreen() {
               </Text>
             </Pressable>
 
-            {/* 하단 링크  */}
+            {/* 하단 링크 */}
             <View style={styles.linksRow}>
               <Pressable onPress={() => alert("아이디 찾기")} hitSlop={8}>
                 <Text style={styles.linkText}>아이디 찾기</Text>
