@@ -32,7 +32,7 @@ export default function LoginScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }).start();
     }
   }, [errorMsg]);
