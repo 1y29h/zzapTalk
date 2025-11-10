@@ -1,7 +1,10 @@
 package com.zzaptalk.backend.controller;
 
+import com.zzaptalk.backend.dto.UserLoginRequest;
 import com.zzaptalk.backend.dto.UserSignUpRequest;
+import com.zzaptalk.backend.entity.User;
 import com.zzaptalk.backend.service.UserService;
+import com.zzaptalk.backend.util.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // -------------------------------------------------------------------------
     // 회원가입(Sign Up) API 엔드포인트
@@ -42,6 +46,36 @@ public class UserController {
         catch (Exception e) {
             // 기타 서버 오류 처리(500 Internal Server Error)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원가입 중 서버 오류가 발생했습니다.");
+        }
+
+    }
+
+    // -------------------------------------------------------------------------
+    // 로그인(Log In) API 엔드포인트
+    // POST /api/v1/users/login
+    // -------------------------------------------------------------------------
+
+    @PostMapping("/login")
+    // @Valid: DTO 유효성 검사(@NotBlank 등) 수행
+    public ResponseEntity<?> login(@Valid @RequestBody UserLoginRequest request) {
+
+        try {
+            // Service 계층에서 사용자 조회 및 비밀번호 검증
+            User loggedInUser = userService.login(request);
+            // 로그인 성공 시 JWT 토큰 생성
+            String jwtToken = jwtTokenProvider.createToken(loggedInUser);
+            // HTTP 200 OK 응답과 함께 토큰 반환
+            return ResponseEntity.ok(jwtToken);
+        }
+
+        catch (IllegalArgumentException e) {
+            // 사용자 정보 불일치(ID/비밀번호 오류) 예외 처리(400 Bad Request)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+
+        catch (Exception e) {
+            // 기타 서버 오류 처리(500 Internal Server Error)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("로그인 중 서버 오류가 발생했습니다.");
         }
 
     }
