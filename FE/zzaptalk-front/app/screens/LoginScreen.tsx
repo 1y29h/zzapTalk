@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
-  Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -10,56 +10,71 @@ import {
   Text,
   TextInput,
   View,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import styles from "../../src/styles/loginsignup/Login.module";
-
-// 010-0000-0000 포맷터
-const formatPhone = (raw: string) => {
-  const only = raw.replace(/\D/g, "").slice(0, 11);
-  if (only.length < 4) return only;
-  if (only.length < 8) return `${only.slice(0, 3)}-${only.slice(3)}`;
-  return `${only.slice(0, 3)}-${only.slice(3, 7)}-${only.slice(7)}`;
-};
-
-function Checkbox({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label?: string;
-}) {
-  return (
-    <Pressable style={styles.checkboxRow} onPress={() => onChange(!checked)}>
-      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-        {checked && <View style={styles.checkboxDot} />}
-      </View>
-      {label ? <Text style={styles.checkboxLabel}>{label}</Text> : null}
-    </Pressable>
-  );
-}
+import { login } from "../../src/services/auth";
+import { startSession } from "../../src/lib/authSession";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [autoLogin, setAutoLogin] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // ✅ 애니메이션용 값
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // errorMsg 바뀔 때마다 fade-in 효과
+  useEffect(() => {
+    if (errorMsg) {
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [errorMsg]);
+
+  const formatPhone = (raw: string) => {
+    const only = raw.replace(/\D/g, "").slice(0, 11);
+    if (only.length < 4) return only;
+    if (only.length < 8) return `${only.slice(0, 3)}-${only.slice(3)}`;
+    return `${only.slice(0, 3)}-${only.slice(3, 7)}-${only.slice(7)}`;
+  };
 
   const canSubmit = useMemo(() => {
     const phoneOk = /^\d{3}-\d{3,4}-\d{4}$/.test(phone);
-    return phoneOk && password.length > 0;
-  }, [phone, password]);
+    return phoneOk && password.length > 0 && !loading;
+  }, [phone, password, loading]);
 
-  const onChangePhone = (v: string) => setPhone(formatPhone(v));
-
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!canSubmit) return;
-    router.push({
-      pathname: "/chat/[id]",
-      params: { id: "room1" },
-    });
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      Keyboard.dismiss();
+      if (Platform.OS === "web" && typeof document !== "undefined") {
+        (document.activeElement as HTMLElement | null)?.blur?.();
+      }
+
+      const payload = { phoneNum: phone.replace(/\D/g, ""), pwd: password };
+      const jwt = await login(payload);
+      await startSession(jwt);
+      router.replace("/");
+    } catch (e: any) {
+      const msg =
+        e?.message ||
+        e?.data?.message ||
+        "로그인에 실패했습니다. 아이디/비밀번호를 확인해 주세요.";
+      console.warn("[LOGIN ERROR]", msg);
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,7 +83,6 @@ export default function LoginScreen() {
       style={styles.container}
     >
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
-        {/* ✅ 여기서부터 ScrollView로 전체 감싸기 */}
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
@@ -96,12 +110,11 @@ export default function LoginScreen() {
             <Text style={styles.label}>전화번호</Text>
             <TextInput
               value={phone}
-              onChangeText={onChangePhone}
+              onChangeText={(v) => setPhone(formatPhone(v))}
               keyboardType="number-pad"
               placeholder="010-0000-0000"
               placeholderTextColor="#b7b7b7"
               style={styles.input}
-              returnKeyType="next"
             />
 
             <Text style={[styles.label, { marginTop: 16 }]}>비밀번호</Text>
@@ -112,34 +125,42 @@ export default function LoginScreen() {
               placeholderTextColor="#b7b7b7"
               secureTextEntry
               style={styles.input}
-              returnKeyType="done"
               onSubmitEditing={onSubmit}
             />
 
-            <Checkbox
-              checked={autoLogin}
-              onChange={setAutoLogin}
-              label="자동 로그인"
-            />
+            {/* 에러 메시지 */}
+            {errorMsg && (
+              <Animated.View style={{ opacity: fadeAnim, marginTop: 10 }}>
+                <Text
+                  style={{
+                    color: "#ff4d4d",
+                    fontSize: 14,
+                    textAlign: "center",
+                    lineHeight: 18,
+                  }}
+                >
+                  {errorMsg}
+                </Text>
+              </Animated.View>
+            )}
 
             <Pressable
               style={[styles.loginBtn, !canSubmit && styles.loginBtnDisabled]}
               onPress={onSubmit}
               disabled={!canSubmit}
             >
-              <Text style={styles.loginBtnText}>로그인</Text>
+              <Text style={styles.loginBtnText}>
+                {loading ? "로그인 중..." : "로그인"}
+              </Text>
             </Pressable>
 
-            {/* 하단 링크 */}
+            {/* 하단 링크  */}
             <View style={styles.linksRow}>
-              <Pressable onPress={() => Alert.alert("아이디 찾기")} hitSlop={8}>
+              <Pressable onPress={() => alert("아이디 찾기")} hitSlop={8}>
                 <Text style={styles.linkText}>아이디 찾기</Text>
               </Pressable>
               <View style={styles.dot} />
-              <Pressable
-                onPress={() => Alert.alert("비밀번호 찾기")}
-                hitSlop={8}
-              >
+              <Pressable onPress={() => alert("비밀번호 찾기")} hitSlop={8}>
                 <Text style={styles.linkText}>비밀번호 찾기</Text>
               </Pressable>
               <View style={styles.dot} />
@@ -149,7 +170,6 @@ export default function LoginScreen() {
             </View>
           </View>
         </ScrollView>
-        {/* ✅ ScrollView 닫힘 */}
       </SafeAreaView>
     </KeyboardAvoidingView>
   );

@@ -1,4 +1,3 @@
-// src/lib/api.ts
 import axios, { AxiosError } from "axios";
 
 export class ApiError extends Error {
@@ -15,45 +14,50 @@ export class ApiError extends Error {
 const BASE = (
   process.env.EXPO_PUBLIC_API_BASE || "https://api.zzaptalk.com"
 ).replace(/\/+$/, "");
-if (!BASE) {
-  // 개발 중 변수 누락 빨리 알림
-  // eslint-disable-next-line no-console
-  console.warn("[API] EXPO_PUBLIC_API_BASE is empty. Check your .env");
+
+// ✅ 전역 토큰 캐시 (+ 외부에서 설정 함수 제공)
+let AUTH_TOKEN: string | null = null;
+export function setApiAuthToken(token: string | null) {
+  AUTH_TOKEN = token;
+  if (token) {
+    (api.defaults.headers as any).common["Authorization"] = `Bearer ${token}`;
+  } else {
+    delete (api.defaults.headers as any).common["Authorization"];
+  }
 }
 
 export const api = axios.create({
   baseURL: BASE || undefined,
   timeout: 15_000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// 요청 인터셉터 (토큰 필요해지면 여기서 붙이면 돼)
 api.interceptors.request.use((config) => {
-  // 예) const token = await SecureStore.getItemAsync("token");
-  // if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (AUTH_TOKEN && !config.headers?.Authorization) {
+    (config.headers as any).Authorization = `Bearer ${AUTH_TOKEN}`;
+  }
   return config;
 });
 
-// 응답/에러 인터셉터 (서버 에러 포맷 통일)
 api.interceptors.response.use(
   (res) => res,
   (err: AxiosError) => {
     if (err.response) {
       const status = err.response.status;
       const data = err.response.data as any;
-      const msg = data?.message || data?.error || data?.msg || `HTTP ${status}`;
+      const msg =
+        typeof data === "string"
+          ? data
+          : data?.message || data?.error || data?.msg || `HTTP ${status}`;
       throw new ApiError(msg, status, data);
     }
-    if (err.request) {
+    if (err.request)
       throw new ApiError("네트워크 오류 또는 서버 응답 없음", 0, null);
-    }
     throw new ApiError(err.message || "알 수 없는 오류", -1, null);
   }
 );
 
-// (선택) 메서드 헬퍼
+// 편의 메서드
 export async function get<T>(url: string, params?: any): Promise<T> {
   const { data } = await api.get<T>(url, { params });
   return data;
@@ -70,5 +74,5 @@ export async function del<T>(url: string): Promise<T> {
   const { data } = await api.delete<T>(url);
   return data;
 }
-// 맨 아래 어딘가에 한 줄 추가(개발용 로그)
+
 console.log("[API] BASE =", BASE);
