@@ -19,6 +19,7 @@ temp/
 # macOS에서 생성되는 폴더 메타데이터
 **/.DS_Store
 .DS_Store
+../.DS_Store
 # Vim 스왑 파일
 **/*.swp
 
