@@ -10,9 +10,10 @@ import {
   Text,
   TextInput,
   View,
+  Keyboard, // ✅ 추가
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { signup } from "../../src/services/auth"; // 백엔드 붙일 때 주석 해제
+import { signup } from "../../src/services/auth";
 import styles from "../../src/styles/loginsignup/Signup.module";
 
 // 010-0000-0000 포맷터
@@ -22,31 +23,20 @@ const formatPhone = (raw: string) => {
   if (only.length < 8) return `${only.slice(0, 3)}-${only.slice(3)}`;
   return `${only.slice(0, 3)}-${only.slice(3, 7)}-${only.slice(7)}`;
 };
-
-// 숫자만 남기기
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 export default function SignupScreen() {
   const router = useRouter();
-
-  // 입력값
   const [name, setName] = useState("");
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [showPwd2, setShowPwd2] = useState(false);
-
-  // 주민번호
   const [rrnFront, setRrnFront] = useState("");
   const [rrnBack1, setRrnBack1] = useState("");
-
-  // 전화번호
   const [phone, setPhone] = useState("");
-
-  // 로딩
   const [loadingSignup, setLoadingSignup] = useState(false);
 
-  // 유효성 검사
   const pwdOk = pwd.length >= 8;
   const pwdSame = pwd.length > 0 && pwd === pwd2;
   const rrnFrontOk = /^\d{6}$/.test(rrnFront);
@@ -70,11 +60,15 @@ export default function SignupScreen() {
   const onChangeRrnBack1 = (v: string) =>
     setRrnBack1(onlyDigits(v).slice(0, 1));
 
-  // 제출
   const onSubmit = async () => {
-    console.log("[BTN] pressed, canSubmit=", canSubmit);
+    // ✅ 포커스/키보드 해제 (웹 접근성 경고 예방)
+    Keyboard.dismiss();
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+    }
 
-    // 유효성 체크
+    if (loadingSignup) return; // ✅ 중복 제출 가드
+
     if (!canSubmit) {
       const msgs: string[] = [];
       if (name.trim().length < 2) msgs.push("이름");
@@ -96,16 +90,16 @@ export default function SignupScreen() {
 
     try {
       setLoadingSignup(true);
-      console.log("[SIGNUP] call api", payload);
-
-      // 백엔드 붙일 때 아래 주석 해제
-      await signup(payload);
-
-      console.log("[SIGNUP] success → /login");
+      await signup(payload); // text/plain: "회원가입이 성공적으로 완료되었습니다."
+      // ✅ 이동 전 포커스 한번 더 정리
+      Keyboard.dismiss();
+      if (Platform.OS === "web" && typeof document !== "undefined") {
+        (document.activeElement as HTMLElement | null)?.blur?.();
+      }
       Alert.alert("회원가입 완료", "로그인 화면으로 이동합니다.");
-      router.replace("/login");
+      // 다음 프레임에 안전하게 이동
+      requestAnimationFrame(() => router.replace("/login"));
     } catch (e: any) {
-      console.log("[SIGNUP] error", e?.status, e?.message, e?.data);
       Alert.alert("회원가입 실패", e?.message ?? "잠시 후 다시 시도해 주세요.");
     } finally {
       setLoadingSignup(false);
@@ -120,7 +114,7 @@ export default function SignupScreen() {
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={[styles.scrollPad, { flexGrow: 1 }]}
-          keyboardShouldPersistTaps="always"
+          keyboardShouldPersistTaps="handled" // ✅ 권장값
         >
           {/* 상단 로고 & 뒤로가기 */}
           <View style={styles.logoHeader}>
@@ -252,7 +246,7 @@ export default function SignupScreen() {
           <Text style={styles.label}>전화번호</Text>
           <TextInput
             value={formatPhone(phone)}
-            onChangeText={(v) => setPhone(onlyDigits(v))}
+            onChangeText={(v) => setPhone(onlyDigits(v).slice(0, 11))} // ✅ 11자리 제한
             keyboardType="phone-pad"
             placeholder="휴대전화 번호 입력"
             placeholderTextColor="#b7b7c2"
@@ -275,6 +269,8 @@ export default function SignupScreen() {
               (!canSubmit || loadingSignup) && styles.submitBtnDisabled,
               pressed && { opacity: 0.9 },
             ]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSubmit || loadingSignup }}
           >
             <Text style={styles.submitText}>
               {loadingSignup ? "가입 중..." : "회원가입 완료"}
