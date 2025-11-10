@@ -2,7 +2,7 @@ import { api } from "../lib/api";
 
 /** 백엔드 엔드포인트 */
 const AUTH = {
-  LOGIN: "/api/auth/login",
+  LOGIN: "/api/v1/users/login",
   SIGNUP: "/api/v1/users/signup",
 
   // (옵션) SMS 관련
