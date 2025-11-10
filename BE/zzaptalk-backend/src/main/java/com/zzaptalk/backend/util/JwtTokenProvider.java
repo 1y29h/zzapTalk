@@ -1,19 +1,24 @@
 package com.zzaptalk.backend.util;
 
 import com.zzaptalk.backend.entity.User;
+import com.zzaptalk.backend.service.CustomUserDetailsService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider {
 
     // application-local.yml에서 secret 주입
@@ -25,6 +30,7 @@ public class JwtTokenProvider {
     private long tokenExpiration;
 
     private Key key;
+    private final CustomUserDetailsService userDetailsService;
 
     // -------------------------------------------------------------------------
     // 초기화: Base64 secretKey -> Key 객체로 변환
@@ -70,6 +76,40 @@ public class JwtTokenProvider {
                 .signWith(key, SignatureAlgorithm.HS256)    // 서명 알고리즘 및 비밀 키 사용
                 .compact();                                 // 토큰 압축
 
+    }
+
+    // -------------------------------------------------------------------------
+    // JWT 토큰에서 인증 정보 추출
+    // -------------------------------------------------------------------------
+
+    // 토큰에서 Subject 정보 추출 메서드
+    public String getPrincipal(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public Authentication getAuthentication(String token) {
+        String principal = this.getPrincipal(token);
+
+        // CustomUserDetailsService를 사용하여 UserDetails 로드
+        UserDetails userDetails = userDetailsService.loadUserByUsername(principal);
+
+        // Spring Security의 Authentication 객체 반환
+        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+    }
+
+    // -------------------------------------------------------------------------
+    // 토큰 유효성 + 만료일자 확인
+    // -------------------------------------------------------------------------
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        }
+        catch (Exception e) {
+            // 서명 오류, 만료 오류, 형식 오류 등 모든 예외 처리
+            return false;
+        }
     }
 
 }
