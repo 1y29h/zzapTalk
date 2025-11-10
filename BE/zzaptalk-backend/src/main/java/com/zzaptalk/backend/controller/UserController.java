@@ -24,22 +24,23 @@ public class UserController {
     // -------------------------------------------------------------------------
 
     @PostMapping("/signup")
-    // @Valid: DTO 유효성 검사 (@NotBlank, @Email 등) 수행
+    // @Valid: DTO 유효성 검사(@NotBlank 등) 수행
     public ResponseEntity<String> signUp(@Valid @RequestBody UserSignUpRequest request) {
 
         try {
-            userService.signUp(request);    // void 타입의 Service 메서드 호출
-            // 성공 시, HTTP 201 Created 응답 반환
+            // void 타입의 Service 메서드 호출
+            userService.signUp(request);
+            // 성공 시 HTTP 201 Created 응답 반환
             return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 성공적으로 완료되었습니다.");
         }
 
         catch (IllegalArgumentException e) {
-            // Service 계층에서 발생시킨 중복 예외 처리 (400 Bad Request)
+            // Service 계층에서 발생시킨 중복 예외 처리(400 Bad Request)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
 
         catch (Exception e) {
-            // 기타 서버 오류 처리 (500 Internal Server Error)
+            // 기타 서버 오류 처리(500 Internal Server Error)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원가입 중 서버 오류가 발생했습니다.");
         }
 
