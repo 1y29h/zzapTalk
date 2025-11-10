@@ -69,4 +69,14 @@ export default StyleSheet.create({
   time: { fontSize: 11, color: TIME },
   timeMine: { alignSelf: "flex-end", marginRight: 6 },
   timeOther: { alignSelf: "flex-end" },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#D9D9D9",
+    marginRight: 8,
+  },
+  content: {
+    maxWidth: "78%",
+  },
 });
