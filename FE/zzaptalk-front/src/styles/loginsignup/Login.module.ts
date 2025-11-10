@@ -16,7 +16,7 @@ export default StyleSheet.create({
     marginBottom: 16,
     position: "relative",
   },
-  logoImg: { width: 120, height: 120, resizeMode: "contain" },
+  logoImg: { width: 120, height: 120 },
 
   /** 폼 */
   form: {
