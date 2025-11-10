@@ -53,8 +53,8 @@ public class SecurityConfig {
 
                 // 인가(접근 권한) 설정
                 .authorizeHttpRequests(auth -> auth
-                        // 회원가입 API와 WebSocket 연결 경로는 인증 없이 접근 허용
-                        .requestMatchers("/api/v1/users/signup", "/ws/**").permitAll()
+                        // 회원가입, 로그인 API와 WebSocket 연결 경로는 인증 없이 접근 허용
+                        .requestMatchers("/api/v1/users/signup", "/api/v1/users/login", "/ws/**").permitAll()
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
                 );
