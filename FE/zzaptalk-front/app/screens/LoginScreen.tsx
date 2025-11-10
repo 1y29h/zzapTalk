@@ -49,32 +49,31 @@ export default function LoginScreen() {
     return phoneOk && password.trim().length > 0 && !loading;
   }, [phone, password, loading]);
 
+  // LoginScreen.tsx의 onSubmit 함수 (올바른 수정안)
+
   const onSubmit = async () => {
     if (!canSubmit) return;
     setErrorMsg(null);
     setLoading(true);
     try {
       Keyboard.dismiss();
-      if (Platform.OS === "web" && typeof document !== "undefined") {
-        (document.activeElement as HTMLElement | null)?.blur?.();
-      }
+      // ... (키보드 숨기기) ...
 
       const payload = {
         phoneNum: phone.replace(/\D/g, ""),
         pwd: password.trim(),
       };
 
-      const raw = await login(payload); // 서버가 JWT 문자열을 반환
-      const jwt = String(raw).trim().replace(/^"|"$/g, "");
-      await startSession(jwt);
+      // 1. login()은 객체를 반환합니다.
+      const response = await login(payload);
+      // response = { accessToken: "ey...", expiresIn: 3600000 }
 
-      router.replace("/"); // 로그인 성공 후 루트(목록)으로
+      // 2. startSession에는 토큰과 만료 시간을 전달합니다.
+      await startSession(response.accessToken, response.expiresIn);
+
+      router.replace("/"); // 로그인 성공!
     } catch (err) {
-      // <--- 수정된 부분 (1)
-
-      // <--- 수정된 부분 (2): 에러 로그 출력
       console.error("로그인 API 실패:", err);
-
       setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
