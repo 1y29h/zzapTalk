@@ -69,7 +69,12 @@ export default function LoginScreen() {
       await startSession(jwt);
 
       router.replace("/"); // 로그인 성공 후 루트(목록)으로
-    } catch {
+    } catch (err) {
+      // <--- 수정된 부분 (1)
+
+      // <--- 수정된 부분 (2): 에러 로그 출력
+      console.error("로그인 API 실패:", err);
+
       setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
