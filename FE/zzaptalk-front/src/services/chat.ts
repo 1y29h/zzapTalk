@@ -1,36 +1,36 @@
-// src/services/chat.ts
 import { api } from "../lib/api";
+import type {
+  ChatRoomUserListItem,
+  ChatRoomResponse,
+  ChatMessageResponse,
+} from "../types/chat";
 
-export type Room = {
-  id: string;
-  title: string;
-  lastMessage?: string;
-  unreadCount?: number;
-  // 백엔드 필드와 매핑 필요시 여기에서 가공
-};
-
-type RoomResp = {
-  id: string;
-  title: string;
-  lastMessage?: string;
-  unreadCount?: number;
-};
-
-function toRoom(r: RoomResp): Room {
-  return {
-    id: String(r.id),
-    title: r.title ?? "이름 없음",
-    lastMessage: r.lastMessage ?? "",
-    unreadCount: r.unreadCount ?? 0,
-  };
+export async function getChatRoomList(): Promise<ChatRoomUserListItem[]> {
+  const res = await api.get("/api/chat/rooms/list");
+  return res.data;
 }
 
-export async function fetchGroupRooms(): Promise<Room[]> {
-  const { data } = await api.get<RoomResp[]>("/api/chat/rooms/group");
-  return (data ?? []).map(toRoom);
+export async function createOrGetSingleChatRoom(
+  targetUserId: number
+): Promise<ChatRoomResponse> {
+  const res = await api.post("/api/chat/rooms/single", { targetUserId });
+  return res.data;
 }
 
-export async function fetchSingleRooms(): Promise<Room[]> {
-  const { data } = await api.get<RoomResp[]>("/api/chat/rooms/single");
-  return (data ?? []).map(toRoom);
+export async function createGroupChatRoom(
+  roomName: string,
+  invitedUserIds: number[]
+): Promise<ChatRoomResponse> {
+  const res = await api.post("/api/chat/rooms/group", {
+    roomName,
+    invitedUserIds,
+  });
+  return res.data;
+}
+
+export async function getChatMessages(
+  roomId: number
+): Promise<ChatMessageResponse[]> {
+  const res = await api.get(`/api/chat/rooms/${roomId}/messages`);
+  return res.data;
 }

@@ -11,13 +11,18 @@ import MessageBubble, {
 import MessageInput from "../../src/components/chat/MessageInput";
 
 import {
-  ChatPayload,
   connectStomp,
   disconnectStomp,
   sendChatMessage,
 } from "../../src/services/socket";
+import { getChatMessages } from "../../src/services/chat";
+import type { ChatMessageResponse } from "../../src/types/chat";
 
 import roomStyles from "../../src/styles/chat/ChatRoom.module";
+
+// (토큰에서 내 userId 뽑기 - 프로젝트에 이미 있는 유틸 사용)
+import { loadTokenWithExpiry } from "../../src/lib/authStorage";
+import { parseJwt } from "../../src/lib/jwt";
 
 // 날짜 비교/포맷
 function isSameDay(a: Date, b: Date) {
@@ -37,44 +42,86 @@ type Row =
   | { type: "date"; id: string; label: string }
   | { type: "msg"; id: string; msg: ChatMessage; showTime: boolean };
 
+// 토큰에서 내 userId 구하는 헬퍼
+async function getMyId(): Promise<number | null> {
+  const saved = await loadTokenWithExpiry();
+  if (!saved?.token) return null;
+  try {
+    const p = parseJwt(saved.token);
+    const sub = p?.sub;
+    return sub ? Number(sub) : null; // 서버가 subject=User.id
+  } catch {
+    return null;
+  }
+}
+
 export default function ChatRoom() {
-  const {
-    id: roomId,
-    type,
-    title,
-  } = useLocalSearchParams<{
+  const { id, type, title } = useLocalSearchParams<{
     id?: string;
     type?: string; // "group" | undefined
     title?: string; // 헤더에 보여줄 이름(그룹명/상대명)
   }>();
+
+  // roomId는 숫자로 보장
+  const roomId = useMemo(() => Number(id), [id]);
   const isGroup = type === "group";
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerName, setPeerName] = useState<string | undefined>(
     isGroup ? (title as string) || "그룹 채팅" : (title as string) || undefined
   );
+  const [myId, setMyId] = useState<number | null>(null);
+
   const listRef = useRef<FlatList<Row>>(null);
 
-  const myName = "minseo"; // TODO: 로그인 사용자명으로 교체
+  // 내 userId 복원
+  useEffect(() => {
+    (async () => {
+      const uid = await getMyId();
+      setMyId(uid);
+    })();
+  }, []);
 
-  // STOMP 연결
+  // 과거 메시지 로딩
+  useEffect(() => {
+    if (!roomId) return;
+    (async () => {
+      const history: ChatMessageResponse[] = await getChatMessages(roomId);
+      const mapped: ChatMessage[] = history.map((m) => {
+        const mine = myId != null && m.senderId === myId;
+        return {
+          id: String(m.messageId ?? `${m.roomId}-${m.sentAt}`),
+          sender: mine ? "me" : "other",
+          text: m.content,
+          createdAt: new Date(m.sentAt),
+          otherName: !mine && isGroup ? m.senderName : undefined,
+        };
+      });
+      setMessages(mapped);
+      requestAnimationFrame(() =>
+        listRef.current?.scrollToEnd({ animated: false })
+      );
+    })();
+    // myId가 바뀌면 mine 판별도 달라지므로 의존성에 포함
+  }, [roomId, myId, isGroup]);
+
+  // STOMP 연결 (실시간 수신)
   useEffect(() => {
     if (!roomId) return;
 
-    const client = connectStomp(roomId, (payload: ChatPayload) => {
-      const mine = payload.sender === myName;
+    connectStomp(roomId, (payload: ChatMessageResponse) => {
+      const mine = myId != null && payload.senderId === myId;
 
-      // 그룹이면 상대 메시지에 발신자 이름을 표시
       const newMsg: ChatMessage = {
-        id: `${Date.now()}`, // TODO: 서버 id 사용
+        id: String(payload.messageId ?? `${payload.roomId}-${payload.sentAt}`),
         sender: mine ? "me" : "other",
         text: payload.content,
-        createdAt: new Date(),
-        otherName: !mine && isGroup ? payload.sender : undefined,
+        createdAt: new Date(payload.sentAt),
+        otherName: !mine && isGroup ? payload.senderName : undefined,
       };
 
       // 1:1에서 상대 이름이 아직 없으면 첫 수신 시 세팅
-      if (!isGroup && !mine && !peerName) setPeerName(payload.sender);
+      if (!isGroup && !mine && !peerName) setPeerName(payload.senderName);
 
       setMessages((prev) => [...prev, newMsg]);
       requestAnimationFrame(() =>
@@ -85,8 +132,8 @@ export default function ChatRoom() {
     return () => {
       disconnectStomp();
     };
-    // roomId / isGroup 만 의존 (peerName 넣으면 재연결 루프 위험)
-  }, [roomId, isGroup]);
+    // peerName 포함하면 재연결 루프 가능성 있으므로 제외
+  }, [roomId, myId, isGroup]);
 
   // 날짜 구분/분 단위 시간 표시
   const rows = useMemo<Row[]>(() => {
@@ -114,22 +161,16 @@ export default function ChatRoom() {
 
   // 전송
   const handleSend = (text: string) => {
-    if (!roomId) return;
+    if (!roomId || !myId) return;
 
-    // 화면에 먼저 추가
+    // 화면에 먼저 추가 (낙관적 업데이트)
     setMessages((prev) => [
       ...prev,
       { id: `${Date.now()}`, sender: "me", text, createdAt: new Date() },
     ]);
 
-    // 서버 발행
-    const payload: ChatPayload = {
-      roomId,
-      sender: myName,
-      receiver: isGroup ? roomId : peerName || "unknown",
-      content: text,
-    };
-    sendChatMessage(payload);
+    // 서버 발행 (roomId, myId, content) 3개 인자
+    sendChatMessage(roomId, myId, text);
   };
 
   const headerTitle = isGroup ? peerName ?? "그룹 채팅" : peerName ?? "대화";
@@ -154,10 +195,8 @@ export default function ChatRoom() {
               <MessageBubble
                 message={item.msg}
                 showTime={item.showTime}
-                // 그룹이면 이름/아바타 표시 옵션 사용 (MessageBubble이 지원하는 경우)
                 isGroup={isGroup}
                 showName={isGroup}
-                // showAvatar={isGroup}
               />
             )
           }
