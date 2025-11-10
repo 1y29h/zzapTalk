@@ -1,5 +1,6 @@
 package com.zzaptalk.backend.service;
 
+import com.zzaptalk.backend.dto.UserLoginRequest;
 import com.zzaptalk.backend.dto.UserSignUpRequest;
 import com.zzaptalk.backend.entity.User;
 import com.zzaptalk.backend.repository.UserRepository;
@@ -7,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +46,57 @@ public class UserService {
                 .build();
 
         userRepository.save(newUser);
+    }
+
+    // -------------------------------------------------------------------------
+    // 로그인
+    // -------------------------------------------------------------------------
+
+    // 로그인 성공 시 User 객체 반환(추후 JWT 토큰 생성에 사용)
+    @Transactional(readOnly = true)    // 데이터 변경이 없으므로 readOnly
+    public User login(UserLoginRequest request) {
+
+        // 사용자 조회
+        Optional<User> userOptional = findUserByIdentifier(request);
+
+        // 사용자 존재 여부 확인
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("존재하지 않는 사용자 정보입니다.");
+        }
+
+        User user = userOptional.get();
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(request.getPwd(), user.getPwd())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 로그인 성공시 User 객체 반환
+        return user;
+
+    }
+
+    // UserLoginRequest DTO에 포함된 식별자(핸드폰번호, 이메일, ZzapID)를 찾아 User를 조회하는 내부 메서드
+    private Optional<User> findUserByIdentifier(UserLoginRequest request) {
+
+        // 전화번호로 조회
+        if (request.getPhoneNum() != null && !request.getPhoneNum().isBlank()) {
+            return userRepository.findByPhoneNum(request.getPhoneNum());
+        }
+
+        // 이메일로 조회
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            return userRepository.findByEmail(request.getEmail());
+        }
+
+        // ZzapTalk ID로 조회
+        if (request.getZzapID() != null && !request.getZzapID().isBlank()) {
+            return userRepository.findByZzapID(request.getZzapID());
+        }
+
+        // 모든 식별자가 비어있을 경우(Controller에서 @Valid로 대부분 걸러지지만, 방어 코드)
+        throw new IllegalArgumentException("로그인 식별자(전화번호/이메일/ZzapID) 중 하나를 입력해야 합니다.");
+
     }
 
 }
