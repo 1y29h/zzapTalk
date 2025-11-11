@@ -13,7 +13,13 @@ import {
   View,
   Keyboard,
 } from "react-native";
-import { useLocalSearchParams, useRouter, type Href } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+  useRootNavigationState,
+  Redirect,
+  type Href,
+} from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { getChatMessages, getChatRoomList } from "../../src/services/chat";
@@ -69,9 +75,11 @@ async function sendCompat(roomId: number, myId: number, content: string) {
 }
 
 export default function ChatRoomScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const roomId = Number(id);
   const router = useRouter();
+  const rootNav = useRootNavigationState();
+  const navReady = !!rootNav?.key; // ✅ 네비게이션 준비 여부
 
   const [loading, setLoading] = useState(true);
   const [msgs, setMsgs] = useState<ChatMessageResponse[]>([]);
@@ -85,11 +93,12 @@ export default function ChatRoomScreen() {
 
   const redirectOnce = useCallback(
     (to: string) => {
+      if (!navReady) return; // ✅ 네비 준비 전 이동 금지
       if (lastRedirectRef.current === to) return;
       lastRedirectRef.current = to;
       router.replace(to as Href);
     },
-    [router]
+    [router, navReady]
   );
 
   const scrollToBottom = useCallback(() => {
@@ -148,19 +157,20 @@ export default function ChatRoomScreen() {
     }
   }, [roomId, redirectOnce, scrollToBottom]);
 
-  // roomId 검증 & 1회 리다이렉트
-  useEffect(() => {
-    if (!Number.isFinite(roomId)) {
-      redirectOnce("/chat");
-    }
-  }, [roomId, redirectOnce]);
+  // ✅ 네비 준비되기 전엔 아무 것도 렌더/이동하지 않음
+  if (!navReady) {
+    return null; // 필요하면 로딩 UI로 교체
+  }
 
-  // roomId 변경 시에만 초기 로딩
+  // ✅ roomId 유효성 체크: 잘못된 id면 안전하게 Redirect
+  if (!Number.isFinite(roomId)) {
+    return <Redirect href="/chat" />;
+  }
+
+  // roomId 변경 시 초기 로딩 (네비 준비 후)
   useEffect(() => {
-    if (!Number.isFinite(roomId)) return;
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
+  }, [roomId, load]);
 
   // STOMP 연결/구독
   useEffect(() => {
