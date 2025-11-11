@@ -53,16 +53,12 @@ public class JwtTokenProvider {
 
         // Claims(토큰에 담을 정보) 설정
         // 토큰 주제(sub)는 ZzapID, email 또는 phoneNum 중 하나로 설정
-        String identifier = user.getPhoneNum();
-        if (user.getZzapID() != null) {
-            identifier = user.getZzapID();
-        } else if (user.getEmail() != null) {
-            identifier = user.getEmail();
-        }
+        String identifier = String.valueOf(user.getId());
 
         Claims claims = Jwts.claims().setSubject(identifier);
         claims.put("userId", user.getId());
         claims.put("nickname", user.getNickname());
+//        claims.put("email", user.getEmail());
 
         // 만료 시간 설정
         Date now = new Date();
@@ -101,15 +97,32 @@ public class JwtTokenProvider {
     // 토큰 유효성 + 만료일자 확인
     // -------------------------------------------------------------------------
 
+    // JwtTokenProvider.java
     public boolean validateToken(String token) {
+
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         }
-        catch (Exception e) {
-            // 서명 오류, 만료 오류, 형식 오류 등 모든 예외 처리
+
+        // JWT secret key 불일치
+        catch (io.jsonwebtoken.security.SignatureException e) {
+            System.err.println("JWT 검증 실패: 서명이 유효하지 않습니다.");
             return false;
         }
+
+        // 토큰 만료
+        catch (io.jsonwebtoken.ExpiredJwtException e) {
+            System.err.println("JWT 검증 실패: 토큰이 만료되었습니다.");
+            return false;
+        }
+
+        // 기타 형식 오류 등
+        catch (Exception e) {
+            System.err.println("JWT 검증 실패: 기타 오류 (" + e.getMessage() + ")");
+            return false;
+        }
+
     }
 
 }
