@@ -1,76 +1,52 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter, type Href } from "expo-router";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 
-export default function ChatEntryScreen() {
+export default function HomeScreen() {
   const router = useRouter();
 
-  const goGroup = () => router.push("/chat/group" as Href);
-  const goPersonal = () => router.push("/chat/personal" as Href);
-
   return (
-    <View style={s.container}>
-      <Text style={s.header}>채팅</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>채팅방 선택</Text>
 
-      <View style={s.cardWrap}>
-        <Pressable style={[s.card, s.shadow]} onPress={goGroup}>
-          <Feather name="users" size={34} color="#6b5cf6" />
-          <Text style={s.title}>단체 채팅방 입장</Text>
-          <Text style={s.desc}>여러 명과 함께 대화하기</Text>
-        </Pressable>
+      {/* 개인 채팅방 입장 */}
+      <Pressable
+        style={styles.btn}
+        onPress={() => router.push("/chat/personal")}
+      >
+        <Text style={styles.btnText}>개인 채팅방 입장</Text>
+      </Pressable>
 
-        <Pressable style={[s.card, s.shadow]} onPress={goPersonal}>
-          <Ionicons name="person-circle-outline" size={36} color="#6b5cf6" />
-          <Text style={s.title}>개인챗 입장</Text>
-          <Text style={s.desc}>1:1 대화 시작하기</Text>
-        </Pressable>
-      </View>
+      {/* 단체 채팅방 입장 */}
+      <Pressable style={styles.btn} onPress={() => router.push("/chat")}>
+        <Text style={styles.btnText}>단체 채팅방 입장</Text>
+      </Pressable>
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
     alignItems: "center",
-    paddingTop: 70,
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "800",
-    marginBottom: 30,
-    color: "#111",
-  },
-  cardWrap: {
-    width: "85%",
-    gap: 16,
-  },
-  card: {
+    justifyContent: "center",
     backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical: 28,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e5e7eb",
   },
   title: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111",
-    marginTop: 10,
+    fontSize: 24,
+    fontWeight: "600",
+    marginBottom: 40,
   },
-  desc: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
+  btn: {
+    backgroundColor: "#cfc7ff",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    marginVertical: 10,
   },
-  shadow: {
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  btnText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
   },
 });
