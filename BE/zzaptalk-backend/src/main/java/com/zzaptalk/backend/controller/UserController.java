@@ -1,5 +1,6 @@
 package com.zzaptalk.backend.controller;
 
+import com.zzaptalk.backend.dto.AuthResponse;
 import com.zzaptalk.backend.dto.UserLoginRequest;
 import com.zzaptalk.backend.dto.UserSignUpRequest;
 import com.zzaptalk.backend.entity.User;
@@ -9,10 +10,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -64,8 +65,20 @@ public class UserController {
             User loggedInUser = userService.login(request);
             // 로그인 성공 시 JWT 토큰 생성
             String jwtToken = jwtTokenProvider.createToken(loggedInUser);
+
+            // 응답 DTO 빌드
+            AuthResponse response = AuthResponse.builder()
+                    .accessToken(jwtToken)
+                    .tokenType("Bearer")
+                    // 1시간 (3600000ms)으로 하드코딩 가정
+                    .expiresIn(3600000L)
+                    // 사용자 정보를 응답에 포함해야 한다면 주석 해제
+                    .userId(loggedInUser.getId())
+                    .nickname(loggedInUser.getNickname())
+                    .build();
+
             // HTTP 200 OK 응답과 함께 토큰 반환
-            return ResponseEntity.ok(jwtToken);
+            return ResponseEntity.ok(response);
         }
 
         catch (IllegalArgumentException e) {
@@ -77,6 +90,29 @@ public class UserController {
             // 기타 서버 오류 처리(500 Internal Server Error)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("로그인 중 서버 오류가 발생했습니다.");
         }
+
+    }
+
+    // -------------------------------------------------------------------------
+    // 유효성 검사(DTO Validation) 예외 처리기
+    // @Valid 어노테이션 실패 시 발생하는 예외를 처리
+    // -------------------------------------------------------------------------
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+
+        // 여러 필드 오류 중 첫 번째 오류 메시지만 클라이언트에게 반환
+        String errorMessage = ex.getBindingResult().getAllErrors().stream()
+                .findFirst() // 첫 번째 에러를 찾음
+                .map(error -> {
+                    if (error instanceof FieldError fieldError) {
+                        return fieldError.getDefaultMessage();
+                    }
+                    return error.getDefaultMessage();
+                })
+                .orElse("유효성 검사에 실패했습니다."); // 찾지 못할 경우 기본 메시지
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
 
     }
 
