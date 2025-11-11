@@ -1,63 +1,77 @@
-// src/services/socket.ts
-import { Client, IMessage } from "@stomp/stompjs";
+import { CompatClient, IMessage, Stomp } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import type { MessageType } from "../types/chat";
+import type { ChatMessageResponse } from "../types/chat";
 
-const BASE = process.env.EXPO_PUBLIC_API_BASE || "https://zzaptalk.com";
-const WS_URL = `${BASE.replace(/\/+$/, "")}/ws`; // ✅ 백엔드 STOMP 엔드포인트
-
-let client: Client | null = null;
-
+// (이 부분은 명세서와 일치하지 않지만, chat.ts에서 사용하므로 일단 둡니다)
 export type ChatPayload = {
-  roomId: string;
-  sender: string;
-  receiver: string;
+  roomId: number;
+  senderId: number;
   content: string;
+  type: MessageType; // "TEXT" | "IMAGE" | "ENTER" | "LEAVE"
 };
 
+let client: CompatClient | null = null;
+
+const WS_BASE = (process.env.EXPO_PUBLIC_WS_BASE || "").replace(/\/+$/, "");
+
+// STOMP 연결
 export function connectStomp(
-  roomId: string,
-  onMessage: (msg: ChatPayload) => void
+  roomId: number,
+  onMessage: (msg: ChatMessageResponse) => void,
+  onConnect?: () => void
 ) {
-  if (client?.connected) return client;
+  // 엔드포인트는 .env의 '.../ws'를 사용 (명세서와 일치)
+  const sock = new SockJS(WS_BASE || "/ws-stomp");
+  client = Stomp.over(sock) as CompatClient; // 콘솔 로그 억제
 
-  client = new Client({
-    webSocketFactory: () => new SockJS(WS_URL),
-    reconnectDelay: 5000,
-    debug: (str) => console.log("[STOMP]", str),
-  });
+  (client as any).debug = () => {};
 
-  client.onConnect = () => {
-    console.log("✅ STOMP 연결 성공");
-    // 구독
-    client?.subscribe(`/topic/chat.${roomId}`, (message: IMessage) => {
-      const payload = JSON.parse(message.body) as ChatPayload;
-      onMessage(payload);
+  client.connect({}, () => {
+    // [일치] 구독 경로
+    client?.subscribe(`/topic/chat.${roomId}`, (frame: IMessage) => {
+      try {
+        const body = JSON.parse(frame.body);
+        onMessage(body);
+      } catch (e) {
+        console.warn("STOMP parse error", e);
+      }
     });
-  };
-
-  client.onStompError = (frame) => {
-    console.error("❌ STOMP 오류", frame);
-  };
-
-  client.activate();
-  return client;
+    onConnect?.();
+  });
 }
 
 export function disconnectStomp() {
-  if (client && client.connected) {
-    client.deactivate();
-    console.log("🛑 STOMP 연결 종료");
-  }
+  client?.deactivate();
+  client = null;
 }
 
-export function sendChatMessage(data: ChatPayload) {
-  if (!client || !client.connected) {
-    console.warn("⚠️ STOMP 연결이 없습니다. 메시지 전송 불가");
-    return;
-  }
-  // 메시지 발행 경로 (백엔드 명세에 따라)
-  client.publish({
-    destination: `/app/chat.sendMessage.${data.roomId}`,
-    body: JSON.stringify(data),
-  });
+export function isConnected(): boolean {
+  return !!client && !!(client as any).connected;
+}
+
+// (A) 헬퍼: 세 인자 버전
+export function sendChatMessage(
+  roomId: number,
+  senderId: number, // [id].tsx는 'myId' (숫자)를 보냄
+  content: string
+) {
+  if (!client || !(client as any).connected) return; // 전송 데이터를 명세서에 맞게 수정
+
+  const payload = {
+    roomId: String(roomId), // 명세서: String
+    sender: String(senderId), // 명세서: String (숫자 ID를 문자열로 변환)
+    content: content, // 명세서: String
+  }; // 🛑 [수정 완료] 전송 경로에서 "/app" 제거
+
+  (client as any).send(
+    `/chat.sendMessage.${roomId}`, // 명세서와 일치
+    {},
+    JSON.stringify(payload)
+  );
+}
+
+// (B) 페이로드 통째로 보내는 버전 (이 함수는 현재 사용되지 않음)
+export function publishMessage(payload: ChatPayload) {
+  // ... (만약 이 함수도 사용한다면 위와 같이 수정 필요) ...
 }
