@@ -23,10 +23,11 @@ public class WebConfig {
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
-        // ✅ 응답 헤더가 Tomcat WebSocket handshake에도 붙도록 전역 등록
+        // 응답 헤더가 Tomcat WebSocket handshake에도 붙도록 전역 등록
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
+
     }
 
 }
