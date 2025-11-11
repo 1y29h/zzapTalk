@@ -7,7 +7,7 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor    // JPA는 기본 생성자 필수
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Table(name = "user")
