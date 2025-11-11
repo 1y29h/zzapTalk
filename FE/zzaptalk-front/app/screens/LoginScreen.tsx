@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import styles from "../../src/styles/loginsignup/Login.module";
 import { login } from "../../src/services/auth";
 import { startSession } from "../../src/lib/authSession";
+import { ApiError } from "../../src/lib/api";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -64,17 +65,18 @@ export default function LoginScreen() {
         pwd: password.trim(),
       };
 
-      // 1. login()은 객체를 반환합니다.
-      const response = await login(payload);
-      // response = { accessToken: "ey...", expiresIn: 3600000 }
+      const response = await login(payload); // startSession이 토큰 저장과 setApiAuthToken을 모두 처리
 
-      // 2. startSession에는 토큰과 만료 시간을 전달합니다.
-      await startSession(response.accessToken, response.expiresIn);
+      await startSession(response.accessToken, response.expiresIn); // 🛑 [수정] // "/" (로그인 화면)이 아니라 "/chat" (채팅 목록)으로 이동
 
-      router.replace("/"); // 로그인 성공!
+      //router.replace("/chat");
     } catch (err) {
-      console.error("로그인 API 실패:", err);
-      setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
+      console.error("로그인 API 실패:", err); // 👈 [추천] 서버 에러 메시지(예: "비밀번호 불일치")를 그대로 표시
+      if (err instanceof ApiError) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
+      }
     } finally {
       setLoading(false);
     }
