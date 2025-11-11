@@ -1,127 +1,76 @@
-// app/chat/index.tsx
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
-import { getChatRoomList } from "../../src/services/chat";
-import type { ChatRoomUserListItem } from "../../src/types/chat";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
-export default function ChatListScreen() {
+export default function ChatEntryScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [rooms, setRooms] = useState<ChatRoomUserListItem[]>([]);
-  const autoOpenedRef = useRef(false); // 자동 이동이 필요하면 1회만
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getChatRoomList();
-      setRooms(data ?? []);
-      // 🔸 자동 진입을 하고 싶다면 아래를 주석 해제 (단, 1회만)
-      // if (!autoOpenedRef.current && data?.length) {
-      //   autoOpenedRef.current = true;
-      //   router.replace(`/chat/${data[0].roomId}` as Href);
-      // }
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const openRoom = (roomId: number) => {
-    router.push(`/chat/${roomId}` as Href);
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!rooms.length) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.empty}>채팅방이 없어요.</Text>
-        <Pressable style={styles.reload} onPress={load}>
-          <Text style={styles.reloadText}>새로고침</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const goGroup = () => router.push("/chat/group" as Href);
+  const goPersonal = () => router.push("/chat/personal" as Href);
 
   return (
-    <FlatList
-      data={rooms}
-      keyExtractor={(r) => String(r.roomId)}
-      contentContainerStyle={{ padding: 12 }}
-      renderItem={({ item }) => (
-        <Pressable style={styles.item} onPress={() => openRoom(item.roomId)}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>
-              {item.roomName || `방 ${item.roomId}`}
-            </Text>
-            {!!(item.lastMessageContent ?? item.lastMessage) && (
-              <Text style={styles.preview} numberOfLines={1}>
-                {item.lastMessageContent ?? item.lastMessage}
-              </Text>
-            )}
-          </View>
-          {!!item.unreadCount && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{item.unreadCount}</Text>
-            </View>
-          )}
+    <View style={s.container}>
+      <Text style={s.header}>채팅</Text>
+
+      <View style={s.cardWrap}>
+        <Pressable style={[s.card, s.shadow]} onPress={goGroup}>
+          <Feather name="users" size={34} color="#6b5cf6" />
+          <Text style={s.title}>단체 채팅방 입장</Text>
+          <Text style={s.desc}>여러 명과 함께 대화하기</Text>
         </Pressable>
-      )}
-    />
+
+        <Pressable style={[s.card, s.shadow]} onPress={goPersonal}>
+          <Ionicons name="person-circle-outline" size={36} color="#6b5cf6" />
+          <Text style={s.title}>개인챗 입장</Text>
+          <Text style={s.desc}>1:1 대화 시작하기</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  empty: { fontSize: 16, color: "#666", marginBottom: 12 },
-  reload: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#eee",
-    borderRadius: 8,
-  },
-  reloadText: { color: "#333" },
-
-  item: {
-    flexDirection: "row",
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    paddingTop: 70,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 30,
+    color: "#111",
+  },
+  cardWrap: {
+    width: "85%",
+    gap: 16,
+  },
+  card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e9ecef",
-  },
-  title: { fontSize: 16, fontWeight: "600", color: "#111" },
-  preview: { marginTop: 2, color: "#666" },
-
-  badge: {
-    minWidth: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#6b5cf6",
+    borderRadius: 14,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#e5e7eb",
   },
-  badgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  title: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111",
+    marginTop: 10,
+  },
+  desc: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+  },
+  shadow: {
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
 });
