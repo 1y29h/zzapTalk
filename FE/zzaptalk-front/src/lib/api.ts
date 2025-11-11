@@ -18,7 +18,7 @@ export class ApiError extends Error {
 /** ===============================
  *  BASE URL 설정 (.env)
  * =============================== */
-const rawBase = process.env.EXPO_PUBLIC_API_BASE || "https://api.zzaptalk.com";
+const rawBase = process.env.EXPO_PUBLIC_API_BASE || "";
 if (!rawBase) {
   console.warn(
     "[API] EXPO_PUBLIC_API_BASE is missing! Check your .env or Cloudflare settings."

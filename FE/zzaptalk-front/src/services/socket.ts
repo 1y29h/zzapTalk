@@ -1,5 +1,3 @@
-// src/services/socket.ts
-
 import { CompatClient, IMessage, Stomp } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type { MessageType } from "../types/chat";
@@ -25,13 +23,12 @@ export function connectStomp(
 ) {
   // 엔드포인트는 .env의 '.../ws'를 사용 (명세서와 일치)
   const sock = new SockJS(WS_BASE || "/ws-stomp");
-  client = Stomp.over(sock) as CompatClient;
+  client = Stomp.over(sock) as CompatClient; // 콘솔 로그 억제
 
-  // 콘솔 로그 억제
   (client as any).debug = () => {};
 
   client.connect({}, () => {
-    // 🛑 [수정 1] 구독 경로를 명세서에 맞게 변경
+    // [일치] 구독 경로
     client?.subscribe(`/topic/chat.${roomId}`, (frame: IMessage) => {
       try {
         const body = JSON.parse(frame.body);
@@ -59,20 +56,16 @@ export function sendChatMessage(
   senderId: number, // [id].tsx는 'myId' (숫자)를 보냄
   content: string
 ) {
-  if (!client || !(client as any).connected) return;
+  if (!client || !(client as any).connected) return; // 전송 데이터를 명세서에 맞게 수정
 
-  // 🛑 [수정 2] 전송 데이터를 명세서에 맞게 수정
   const payload = {
     roomId: String(roomId), // 명세서: String
     sender: String(senderId), // 명세서: String (숫자 ID를 문자열로 변환)
     content: content, // 명세서: String
-    // 'receiver'는 필수가 아니므로 생략
-    // 'type'은 명세서에 없으므로 삭제
-  };
+  }; // 🛑 [수정 완료] 전송 경로에서 "/app" 제거
 
-  // 🛑 [수정 3] 전송 경로를 명세서에 맞게 수정
   (client as any).send(
-    `/app/chat.sendMessage.${roomId}`, // roomId가 동적으로 포함됨
+    `/chat.sendMessage.${roomId}`, // 명세서와 일치
     {},
     JSON.stringify(payload)
   );
