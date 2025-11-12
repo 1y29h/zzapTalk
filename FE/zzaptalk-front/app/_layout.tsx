@@ -8,8 +8,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { restoreSession, onAuthChange } from "../src/lib/authSession";
-import "@expo/vector-icons/Fonts/Ionicons.ttf";
-import "@expo/vector-icons/Fonts/MaterialIcons.ttf";
 
 /** 로그인 없이 접근 가능한 공개 경로 */
 const PUBLIC = new Set<string>(["/login", "/signup"]);
