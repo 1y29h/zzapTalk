@@ -5,20 +5,20 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
-  Keyboard,
 } from "react-native";
 import {
+  Redirect,
+  type Href,
   useLocalSearchParams,
   useRouter,
   useRootNavigationState,
-  Redirect,
-  type Href,
 } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -28,7 +28,7 @@ import type { ChatMessageResponse } from "../../src/types/chat";
 import { loadTokenWithExpiry } from "../../src/lib/authStorage";
 import { parseJwt } from "../../src/lib/jwt";
 
-// (선택) 소켓: 있으면 사용, 없으면 무시
+// --- (선택) 소켓 모듈 안전 로딩 ---
 let connectStomp: undefined | ((token: string) => Promise<void>);
 let disconnectStomp: undefined | (() => void);
 let sendChatMessageRaw:
@@ -38,7 +38,6 @@ let sendChatMessageRaw:
 let subscribeRoom:
   | undefined
   | ((roomId: number, cb: (m: ChatMessageResponse) => void) => () => void);
-
 try {
   const mod = require("../../src/services/socket");
   connectStomp = mod.connectStomp;
@@ -47,7 +46,7 @@ try {
   subscribeRoom = mod.subscribeRoom;
 } catch {}
 
-/** JWT에서 내 userId 추출 */
+// --- 유틸 ---
 async function getMyId(): Promise<number | null> {
   try {
     const saved = await loadTokenWithExpiry();
@@ -59,8 +58,6 @@ async function getMyId(): Promise<number | null> {
     return null;
   }
 }
-
-/** sendChatMessage 시그니처 호환 래퍼 */
 async function sendCompat(roomId: number, myId: number, content: string) {
   if (!sendChatMessageRaw) return;
   if (sendChatMessageRaw.length === 2) {
@@ -75,28 +72,31 @@ async function sendCompat(roomId: number, myId: number, content: string) {
 }
 
 export default function ChatRoomScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, title } = useLocalSearchParams<{ id?: string; title?: string }>();
   const roomId = Number(id);
+
   const router = useRouter();
   const rootNav = useRootNavigationState();
-  const navReady = !!rootNav?.key; // ✅ 네비게이션 준비 여부
+  const navReady = !!rootNav?.key;
 
-  const [loading, setLoading] = useState(true);
+  // 로딩 분리(초기 / 백그라운드 동기화)
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
   const [msgs, setMsgs] = useState<ChatMessageResponse[]>([]);
   const [text, setText] = useState("");
   const [myId, setMyId] = useState<number | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   const flatRef = useRef<FlatList<ChatMessageResponse>>(null);
-  const unsubRef = useRef<null | (() => void)>(null);
-  const lastRedirectRef = useRef<string>("");
+  const lastRedirectRef = useRef<Href | null>(null);
 
   const redirectOnce = useCallback(
-    (to: string) => {
-      if (!navReady) return; // ✅ 네비 준비 전 이동 금지
+    (to: Href) => {
+      if (!navReady) return;
       if (lastRedirectRef.current === to) return;
       lastRedirectRef.current = to;
-      router.replace(to as Href);
+      router.replace(to);
     },
     [router, navReady]
   );
@@ -107,7 +107,6 @@ export default function ChatRoomScreen() {
     });
   }, []);
 
-  // 내 ID, 토큰 로드 (초기 1회)
   useEffect(() => {
     (async () => {
       const saved = await loadTokenWithExpiry();
@@ -116,66 +115,72 @@ export default function ChatRoomScreen() {
     })();
   }, []);
 
-  // 방 입장 & 초기 로딩
-  const load = useCallback(async () => {
+  const initialLoad = useCallback(async () => {
     try {
-      const rooms = await getChatRoomList();
-      if (!rooms.some((r) => r.roomId === roomId)) {
-        Alert.alert("접근 불가", "이 채팅방의 멤버가 아니에요.");
-        redirectOnce("/chat");
-        return;
+      // (선택) 멤버십 체크 – 테스트 중이면 막지 않아도 됨
+      try {
+        await getChatRoomList();
+      } catch (e: any) {
+        const st = e?.status ?? e?.response?.status;
+        if (st === 401) return redirectOnce("/login" as Href);
       }
 
-      setLoading(true);
       const data = await getChatMessages(roomId);
-      const sorted = [...data].sort((a, b) => {
-        const ta = Date.parse((a as any).createdAt ?? (a as any).sentAt ?? 0);
-        const tb = Date.parse((b as any).createdAt ?? (b as any).sentAt ?? 0);
-        return ta - tb;
-      });
+      const sorted = [...data].sort(
+        (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
+      );
       setMsgs(sorted);
       scrollToBottom();
     } catch (e: any) {
-      const status = e?.response?.status ?? e?.status;
-      if (status === 403) {
-        Alert.alert("권한 오류 (403)", "이 방의 메시지를 볼 권한이 없어요.");
-        redirectOnce("/chat");
-        return;
+      const st = e?.status ?? e?.response?.status;
+      if (st === 401) return redirectOnce("/login" as Href);
+      if (st === 403) {
+        Alert.alert("접근 불가", "이 방의 메시지를 볼 권한이 없어요.");
+        return redirectOnce("/chat" as Href);
       }
-      if (status === 401) {
-        redirectOnce("/login");
-        return;
-      }
-      Alert.alert(
-        "오류",
-        e?.response?.data?.message ||
-          e?.message ||
-          "메시지를 불러오지 못했어요."
-      );
+      Alert.alert("오류", e?.message || "불러오기 실패");
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
   }, [roomId, redirectOnce, scrollToBottom]);
 
-  // ✅ 네비 준비되기 전엔 아무 것도 렌더/이동하지 않음
-  if (!navReady) {
-    return null; // 필요하면 로딩 UI로 교체
-  }
+  const syncMessages = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const data = await getChatMessages(roomId);
+      const sorted = [...data].sort(
+        (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
+      );
+      setMsgs(sorted);
+      scrollToBottom();
+    } catch (e: any) {
+      const st = e?.status ?? e?.response?.status;
+      if (st === 401) {
+        redirectOnce("/login" as Href);
+        return;
+      }
+      if (st === 403) {
+        Alert.alert("접근 불가", "이 방의 메시지를 볼 권한이 없어요.");
+        redirectOnce("/chat" as Href);
+        return;
+      }
+      Alert.alert("동기화 실패", e?.message || "메시지를 갱신하지 못했어요.");
+    } finally {
+      setSyncing(false);
+    }
+  }, [roomId, scrollToBottom, redirectOnce]);
 
-  // ✅ roomId 유효성 체크: 잘못된 id면 안전하게 Redirect
-  if (!Number.isFinite(roomId)) {
-    return <Redirect href="/chat" />;
-  }
-
-  // roomId 변경 시 초기 로딩 (네비 준비 후)
   useEffect(() => {
-    load();
-  }, [roomId, load]);
+    if (!navReady) return;
+    initialLoad();
+  }, [navReady, initialLoad]);
 
-  // STOMP 연결/구독
+  if (!navReady) return null;
+  if (!Number.isFinite(roomId)) return <Redirect href={"/chat" as Href} />;
+
+  // 소켓
   useEffect(() => {
     if (!token || !connectStomp) return;
-
     let cleanup = () => {};
     (async () => {
       try {
@@ -185,30 +190,23 @@ export default function ChatRoomScreen() {
             setMsgs((prev) => {
               if (prev.some((x) => String(x.messageId) === String(m.messageId)))
                 return prev;
-              const next = [...prev, m];
-              next.sort(
+              return [...prev, m].sort(
                 (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
               );
-              return next;
             });
             scrollToBottom();
           });
-          unsubRef.current = unsub;
           cleanup = () => unsub?.();
         }
-      } catch {
-        // 소켓 연결 실패 시 무시
-      }
+      } catch {}
     })();
-
     return () => {
       cleanup?.();
-      unsubRef.current = null;
       disconnectStomp?.();
     };
   }, [roomId, token, scrollToBottom]);
 
-  // 메시지 전송
+  // 전송
   const onSend = useCallback(async () => {
     const t = text.trim();
     if (!t || !myId) return;
@@ -233,33 +231,47 @@ export default function ChatRoomScreen() {
       if (sendChatMessageRaw) {
         await sendCompat(roomId, myId, t);
       }
-      await load(); // 서버 타임스탬프 동기화(선택)
+      await syncMessages(); // 항상 await로 안정화
     } catch {
-      Alert.alert("전송 실패", "메시지를 보낼 수 없어요.");
       setMsgs((prev) =>
         prev.filter((m) => m.messageId !== optimistic.messageId)
       );
+      Alert.alert("전송 실패", "메시지를 보낼 수 없어요.");
     }
-  }, [text, myId, roomId, scrollToBottom, load]);
+  }, [text, myId, roomId, scrollToBottom, syncMessages]);
 
+  // --- 말풍선: 오른쪽/왼쪽 + "옆에 시간" ---
   const renderItem = useCallback(
     ({ item }: { item: ChatMessageResponse }) => {
       const mine = myId != null && item.senderId === myId;
+
       return (
-        <View style={[styles.row, mine ? styles.rowMine : styles.rowOther]}>
-          <View
-            style={[
-              styles.bubble,
-              mine ? styles.bubbleMine : styles.bubbleOther,
-            ]}
-          >
-            {!mine && item.senderName ? (
-              <Text style={styles.senderName}>{item.senderName}</Text>
-            ) : null}
-            <Text style={mine ? styles.msgTextMine : styles.msgTextOther}>
-              {item.content}
-            </Text>
-            <Text style={styles.timeText}>
+        <View
+          style={[styles.msgRow, mine ? styles.msgRowMine : styles.msgRowOther]}
+        >
+          {!mine && <View style={{ width: 34, marginRight: 8 }} />}
+
+          <View style={styles.bubbleLine}>
+            <View
+              style={[
+                styles.bubble,
+                mine ? styles.bubbleMine : styles.bubbleOther,
+              ]}
+            >
+              {!mine && item.senderName ? (
+                <Text style={styles.senderName}>{item.senderName}</Text>
+              ) : null}
+              <Text style={mine ? styles.msgTextMine : styles.msgTextOther}>
+                {item.content}
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.timeBeside,
+                mine ? styles.timeBesideMine : styles.timeBesideOther,
+              ]}
+            >
               {new Date(item.createdAt).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -274,24 +286,38 @@ export default function ChatRoomScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#f9f9f9" }}
+      style={{ flex: 1, backgroundColor: "#fafafa" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.select({ ios: 52, android: 0, web: 0 })}
     >
-      {/* 헤더 */}
+      {/* 상단 바: 뒤로가기 / 제목 / 검색 / 설정 */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerBtn}>
-          <Ionicons name="chevron-back" size={24} color="#111" />
+          <Ionicons name="chevron-back" size={22} color="#111" />
         </Pressable>
-        <Text style={styles.headerTitle}>채팅방 {roomId}</Text>
-        <Pressable onPress={load} style={styles.headerBtn}>
-          <Ionicons name="refresh" size={20} color="#111" />
-        </Pressable>
+
+        <Text style={styles.headerTitle}>{title || `채팅방 ${roomId}`}</Text>
+
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable onPress={() => {}} style={styles.headerBtn}>
+            <Ionicons name="search" size={20} color="#111" />
+          </Pressable>
+          <Pressable onPress={() => {}} style={styles.headerBtn}>
+            <Ionicons
+              name="settings-outline"
+              size={20}
+              color="#111"
+              style={{ opacity: syncing ? 0.6 : 1 }}
+            />
+          </Pressable>
+        </View>
       </View>
 
       {/* 메시지 리스트 */}
-      {loading ? (
-        <View style={styles.loadingBox}>
+      {initialLoading ? (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
           <ActivityIndicator size="large" />
         </View>
       ) : (
@@ -306,38 +332,58 @@ export default function ChatRoomScreen() {
         />
       )}
 
-      {/* 입력바 */}
+      {/* 하단 입력 바: +, 😀, 입력창(안쪽 오른쪽에 전송) */}
       <View style={styles.inputBar}>
-        <TextInput
-          placeholder="메시지 입력"
-          value={text}
-          onChangeText={setText}
-          style={styles.input}
-          onSubmitEditing={onSend}
-          returnKeyType="send"
-        />
-        <Pressable
-          style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
-          onPress={onSend}
-          disabled={!text.trim()}
-        >
-          <Ionicons name="send" size={18} color="#fff" />
+        <Pressable style={styles.circleBtn} onPress={() => {}}>
+          <Ionicons name="add" size={20} color="#444" />
         </Pressable>
+        <Pressable style={styles.circleBtn} onPress={() => {}}>
+          <Ionicons name="happy-outline" size={20} color="#444" />
+        </Pressable>
+
+        <View style={styles.inputWrap}>
+          <TextInput
+            placeholder="메세지 입력"
+            value={text}
+            onChangeText={setText}
+            style={styles.input}
+            onSubmitEditing={onSend}
+            returnKeyType="send"
+          />
+          <Pressable
+            style={[
+              styles.sendFab,
+              !text.trim() && { backgroundColor: "#D8D8E8" },
+            ]}
+            onPress={onSend}
+            disabled={!text.trim()}
+          >
+            <Ionicons name="paper-plane" size={16} color="#fff" />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+const PURPLE = "#7C73FF";
+
 const styles = StyleSheet.create({
+  // --- Header ---
   header: {
-    height: 52,
+    height: 56,
     paddingHorizontal: 12,
+    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e9ecef",
-    backgroundColor: "#fff",
+    borderBottomWidth: 2,
+    borderBottomColor: PURPLE, // 상단 보라 라인
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerBtn: {
     width: 40,
@@ -345,67 +391,92 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111" },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111",
+  },
 
-  loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
+  // --- Message Row & Bubble ---
+  msgRow: { flexDirection: "row", marginVertical: 6, paddingHorizontal: 6 },
+  msgRowMine: { justifyContent: "flex-end" },
+  msgRowOther: { justifyContent: "flex-start" },
 
-  row: { flexDirection: "row", marginVertical: 4, paddingHorizontal: 8 },
-  rowMine: { justifyContent: "flex-end" },
-  rowOther: { justifyContent: "flex-start" },
+  bubbleLine: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    maxWidth: "88%",
+  },
 
   bubble: {
-    maxWidth: "80%",
-    borderRadius: 16,
-    paddingHorizontal: 14,
     paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    maxWidth: "100%",
   },
-  bubbleMine: { backgroundColor: "#6b5cf6", borderBottomRightRadius: 4 },
-  bubbleOther: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-    borderBottomLeftRadius: 4,
+  bubbleMine: { backgroundColor: PURPLE, borderBottomRightRadius: 6 },
+  bubbleOther: { backgroundColor: "#EFEFEF", borderBottomLeftRadius: 6 },
+
+  senderName: { fontSize: 12, color: "#666", marginBottom: 4 },
+
+  msgTextMine: { color: "#fff", fontSize: 15, lineHeight: 21 },
+  msgTextOther: { color: "#111", fontSize: 15, lineHeight: 21 },
+
+  // 말풍선 "옆" 시간
+  timeBeside: {
+    fontSize: 11,
+    color: "#8E8E8E",
+    marginHorizontal: 6,
+    alignSelf: "flex-end",
   },
+  timeBesideMine: { textAlign: "left" },
+  timeBesideOther: { textAlign: "right" },
 
-  senderName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
-  msgTextMine: { color: "#fff", fontSize: 15, lineHeight: 22 },
-  msgTextOther: { color: "#111", fontSize: 15, lineHeight: 22 },
-
-  timeText: { marginTop: 4, fontSize: 11, color: "#888", textAlign: "right" },
-
+  // --- Input Bar ---
   inputBar: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e9ecef",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     backgroundColor: "#fff",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E9E9EC",
   },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#f1f3f5",
-    fontSize: 15,
-  },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: "#6b5cf6",
-    borderRadius: 22,
+  circleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F2F2F5",
     alignItems: "center",
     justifyContent: "center",
   },
-  sendBtnDisabled: { backgroundColor: "#ced4da" },
+  inputWrap: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#F3F3F7",
+    borderRadius: 22,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  input: {
+    paddingLeft: 14,
+    paddingRight: 54, // 내부 전송 버튼 자리
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#111",
+    maxHeight: 120,
+  },
+  sendFab: {
+    position: "absolute",
+    right: 6,
+    top: "50%",
+    transform: [{ translateY: -16 }],
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
