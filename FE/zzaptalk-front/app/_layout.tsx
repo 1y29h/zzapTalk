@@ -1,16 +1,28 @@
+// app/_layout.tsx
 import {
   Stack,
   usePathname,
   useRouter,
   useRootNavigationState,
-  type Href,
 } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { restoreSession, onAuthChange } from "../src/lib/authSession";
 
+/**
+ * 개발 편의용: 로그인 우회 (환경변수로 제어)
+ *  - EXPO_PUBLIC_DEV_BYPASS_LOGIN=1 이면 로그인 없이 /chat 접근 허용
+ *  - 배포/실사용 시 0 또는 unset 권장
+ */
+const BYPASS = process.env.EXPO_PUBLIC_DEV_BYPASS_LOGIN === "1";
+
+/** 공개 경로(로그인 없이 접근 가능) */
 const PUBLIC = new Set<string>(["/login", "/signup"]);
 
+// 우회 모드면 목록/친구/채팅도 공개로 취급(개발 편의)
+if (BYPASS) ["/", "/chat", "/friends"].forEach((p) => PUBLIC.add(p));
+
+/** 경로 정규화 */
 const norm = (p: string) => {
   const q = p.split("?")[0].split("#")[0];
   return q === "/" ? "/" : q.replace(/\/+$/, "");
@@ -25,64 +37,56 @@ export default function RootLayout() {
   const [loggedIn, setLoggedIn] = useState(false);
   const lastRedirect = useRef<string>("");
 
-  // 웹 경고 예방: 경로가 바뀔 때 포커스 해제
+  // 웹에서 포커스 잔상 제거 (선택)
   useEffect(() => {
     if (Platform.OS !== "web") return;
     try {
-      (document.activeElement as HTMLElement | null)?.blur?.();
+      (document.activeElement as any)?.blur?.();
     } catch {}
-  }, [pathname]); // ← onStateChange 대신 pathname 변경으로 대체
+  }, [pathname]);
 
-  // 안전 replace
-  const safeReplace = (to: string) => {
-    if (Platform.OS === "web") {
-      try {
-        (document.activeElement as HTMLElement | null)?.blur?.();
-      } catch {}
-    }
-    router.replace(to as Href);
-  };
-
-  // 세션 복구 + 로그인 상태 구독
+  /** 세션 복구 & 로그인 상태 구독 */
   useEffect(() => {
     let alive = true;
     (async () => {
-      const ok = await restoreSession();
+      const ok = await restoreSession(); // 저장된 토큰 복구 + axios 헤더 세팅
       if (!alive) return;
-      setLoggedIn(!!ok);
+      setLoggedIn(BYPASS ? true : !!ok);
       setReady(true);
     })();
-    const off = onAuthChange((v) => setLoggedIn(v));
+    const off = onAuthChange((v) => setLoggedIn(BYPASS ? true : v));
     return () => {
       alive = false;
       off();
     };
   }, []);
 
-  // 가드
+  /**
+   * 라우팅 가드
+   * - 미로그인: 로그인/회원가입만 허용 → 그 외는 /login 으로
+   * - 로그인: 로그인/회원가입에 있으면 /chat 으로
+   */
   useEffect(() => {
-    if (!rootNav?.key) return; // 네비 준비 전 이동 금지
-    if (!ready) return;
+    if (!rootNav?.key || !ready) return;
 
     const curr = norm(pathname);
     let to: string | null = null;
 
-    if (!loggedIn && !PUBLIC.has(curr)) to = "/login";
-    if (loggedIn && PUBLIC.has(curr)) to = "/";
+    // 🔒 미로그인 보호 (우회 모드 제외)
+    if (!loggedIn && !PUBLIC.has(curr)) {
+      to = "/login";
+    }
+
+    // 🔓 로그인 후 로그인/회원가입 화면에 머무르면 채팅 목록으로
+    if (loggedIn && (curr === "/login" || curr === "/signup")) {
+      to = "/chat";
+    }
 
     if (to && to !== curr && lastRedirect.current !== to) {
       lastRedirect.current = to;
-      safeReplace(to);
+      router.replace(to as any);
     }
-  }, [rootNav?.key, ready, loggedIn, pathname]);
+  }, [rootNav?.key, ready, loggedIn, pathname, router]);
 
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        // 지원되는 옵션만 사용
-        freezeOnBlur: true,
-      }}
-    />
-  );
+  return <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} />;
 }
