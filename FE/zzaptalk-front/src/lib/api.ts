@@ -69,11 +69,22 @@ api.interceptors.request.use((config) => {
   const headers = axios.AxiosHeaders.from(config.headers);
   config.headers = headers;
 
-  if (config.skipAuth) return config;
+  // 로그인/회원가입 등 인증 불필요 요청은 바로 진행
+  if (config.skipAuth) {
+    // 🔍 디버그: 인증 생략되는 요청 표시
+    console.log("[REQ]", config.method?.toUpperCase(), config.url, "skipAuth");
+    return config;
+  }
 
+  // Authorization 자동 부착
   if (AUTH_TOKEN && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${AUTH_TOKEN}`);
   }
+
+  // 🔍 디버그: 매 요청마다 토큰 부착 여부 출력 (auth✓ / auth✗)
+  const hasAuth = headers.get("Authorization") ? "auth✓" : "auth✗";
+  console.log("[REQ]", config.method?.toUpperCase(), config.url, hasAuth);
+
   return config;
 });
 
@@ -92,6 +103,16 @@ api.interceptors.response.use(
         data?.error ||
         data?.msg ||
         `HTTP ${status}`;
+
+      // 🔍 디버그: 에러 로그 한 번 더 남기기
+      console.warn(
+        "[RES ERR]",
+        status,
+        err.config?.method?.toUpperCase(),
+        err.config?.url,
+        msg
+      );
+
       return Promise.reject(new ApiError(msg, status, data));
     }
     if (err.request) {
