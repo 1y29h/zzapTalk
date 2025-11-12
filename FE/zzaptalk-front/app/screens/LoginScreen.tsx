@@ -1,4 +1,3 @@
-// app/screens/LoginScreen.tsx
 import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
@@ -28,14 +27,13 @@ export default function LoginScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (errorMsg) {
-      fadeAnim.setValue(0);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: Platform.OS !== "web",
-      }).start();
-    }
+    if (!errorMsg) return;
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
   }, [errorMsg, fadeAnim]);
 
   const formatPhone = (raw: string) => {
@@ -50,33 +48,39 @@ export default function LoginScreen() {
     return phoneOk && password.trim().length > 0 && !loading;
   }, [phone, password, loading]);
 
-  // LoginScreen.tsx의 onSubmit 함수 (올바른 수정안)
-
   const onSubmit = async () => {
     if (!canSubmit) return;
     setErrorMsg(null);
     setLoading(true);
     try {
       Keyboard.dismiss();
-      // ... (키보드 숨기기) ...
 
-      const payload = {
+      // 1) 로그인 호출 (객체 반환)
+      const res: any = await login({
         phoneNum: phone.replace(/\D/g, ""),
         pwd: password.trim(),
-      };
+      });
 
-      const response = await login(payload); // startSession이 토큰 저장과 setApiAuthToken을 모두 처리
+      // 2) 토큰 안전 추출: 문자열/객체 모두 대응
+      const token =
+        typeof res === "string"
+          ? String(res).trim().replace(/^"|"$/g, "")
+          : String(res?.accessToken || res?.token || "");
 
-      await startSession(response.accessToken, response.expiresIn); // 🛑 [수정] // "/" (로그인 화면)이 아니라 "/chat" (채팅 목록)으로 이동
-
-      //router.replace("/chat");
-    } catch (err) {
-      console.error("로그인 API 실패:", err); // 👈 [추천] 서버 에러 메시지(예: "비밀번호 불일치")를 그대로 표시
-      if (err instanceof ApiError) {
-        setErrorMsg(err.message);
-      } else {
-        setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
+      if (!token) {
+        setErrorMsg("로그인 응답에 토큰이 없어요.");
+        return;
       }
+
+      // 3) 세션 시작 → axios에 Authorization 세팅
+      await startSession(token);
+
+      // 4) 홈으로 이동 (index → /chat으로 보냄)
+      router.replace("/");
+    } catch (err) {
+      console.error("로그인 실패:", err);
+      if (err instanceof ApiError) setErrorMsg(err.message);
+      else setErrorMsg("로그인 중 문제가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -88,98 +92,84 @@ export default function LoginScreen() {
       style={styles.container}
     >
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
-        <View style={{ flex: 1 }}>
-          <ScrollView
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingTop: 56,
-              paddingHorizontal: 20,
-              paddingBottom: 40,
-              justifyContent: "flex-start",
-            }}
-            keyboardShouldPersistTaps="always"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.logoHeader} pointerEvents="none">
-              <Image
-                source={require("../../src/assets/images/loginlog.png")}
-                style={styles.logoImg}
-                resizeMode="contain"
-              />
-            </View>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 56,
+            paddingHorizontal: 20,
+            paddingBottom: 40,
+            justifyContent: "flex-start",
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.logoHeader}>
+            <Image
+              source={require("../../src/assets/images/loginlog.png")}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
+          </View>
 
-            <View style={styles.form}>
-              <Text style={styles.label}>전화번호</Text>
-              <TextInput
-                value={phone}
-                onChangeText={(v) => setPhone(formatPhone(v))}
-                keyboardType={Platform.OS === "web" ? "default" : "phone-pad"}
-                inputMode="numeric"
-                placeholder="010-0000-0000"
-                placeholderTextColor="#b7b7b7"
-                style={styles.input}
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={13}
-                editable
-              />
+          <View style={styles.form}>
+            <Text style={styles.label}>전화번호</Text>
+            <TextInput
+              value={phone}
+              onChangeText={(v) => setPhone(formatPhone(v))}
+              keyboardType={Platform.OS === "web" ? "default" : "phone-pad"}
+              placeholder="010-0000-0000"
+              placeholderTextColor="#b7b7b7"
+              style={styles.input}
+              maxLength={13}
+            />
 
-              <Text style={[styles.label, { marginTop: 16 }]}>비밀번호</Text>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="비밀번호"
-                placeholderTextColor="#b7b7b7"
-                secureTextEntry
-                style={styles.input}
-                onSubmitEditing={onSubmit}
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="password"
-                editable
-              />
+            <Text style={[styles.label, { marginTop: 16 }]}>비밀번호</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="비밀번호"
+              placeholderTextColor="#b7b7b7"
+              secureTextEntry
+              style={styles.input}
+              onSubmitEditing={onSubmit}
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+            />
 
-              {errorMsg && (
-                <Animated.View style={{ opacity: fadeAnim, marginTop: 10 }}>
-                  <Text
-                    style={{
-                      color: "#ff4d4d",
-                      fontSize: 14,
-                      textAlign: "center",
-                      lineHeight: 18,
-                    }}
-                  >
-                    {errorMsg}
-                  </Text>
-                </Animated.View>
-              )}
-
-              <Pressable
-                style={[styles.loginBtn, !canSubmit && styles.loginBtnDisabled]}
-                onPress={onSubmit}
-                disabled={!canSubmit}
-              >
-                <Text style={styles.loginBtnText}>
-                  {loading ? "로그인 중..." : "로그인"}
+            {errorMsg && (
+              <Animated.View style={{ opacity: fadeAnim, marginTop: 10 }}>
+                <Text style={{ color: "#ff4d4d", textAlign: "center" }}>
+                  {errorMsg}
                 </Text>
-              </Pressable>
+              </Animated.View>
+            )}
 
-              <View style={styles.linksRow}>
-                <Pressable onPress={() => alert("아이디 찾기")} hitSlop={8}>
-                  <Text style={styles.linkText}>아이디 찾기</Text>
-                </Pressable>
-                <View style={styles.dot} />
-                <Pressable onPress={() => alert("비밀번호 찾기")} hitSlop={8}>
-                  <Text style={styles.linkText}>비밀번호 찾기</Text>
-                </Pressable>
-                <View style={styles.dot} />
-                <Pressable onPress={() => router.push("/signup")} hitSlop={8}>
-                  <Text style={styles.linkText}>회원가입</Text>
-                </Pressable>
-              </View>
+            <Pressable
+              style={[styles.loginBtn, !canSubmit && styles.loginBtnDisabled]}
+              onPress={onSubmit}
+              disabled={!canSubmit}
+            >
+              <Text style={styles.loginBtnText}>
+                {loading ? "로그인 중..." : "로그인"}
+              </Text>
+            </Pressable>
+
+            <View style={styles.linksRow}>
+              <Pressable onPress={() => alert("아이디 찾기")}>
+                <Text style={styles.linkText}>아이디 찾기</Text>
+              </Pressable>
+              <View style={styles.dot} />
+              <Pressable onPress={() => alert("비밀번호 찾기")}>
+                <Text style={styles.linkText}>비밀번호 찾기</Text>
+              </Pressable>
+              <View style={styles.dot} />
+              <Pressable onPress={() => router.push("/signup")}>
+                <Text style={styles.linkText}>회원가입</Text>
+              </Pressable>
             </View>
-          </ScrollView>
-        </View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
