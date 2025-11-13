@@ -8,6 +8,9 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { restoreSession, onAuthChange } from "../src/lib/authSession";
+import { useFonts } from "expo-font";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { View, ActivityIndicator } from "react-native";
 
 /** 로그인 없이 접근 가능한 공개 경로 */
 const PUBLIC = new Set<string>(["/login", "/signup"]);
@@ -26,6 +29,11 @@ export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const lastRedirect = useRef<string>("");
+
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+    ...MaterialIcons.font,
+  });
 
   // (선택) 웹에서 포커스 잔상 제거
   useEffect(() => {
@@ -73,6 +81,14 @@ export default function RootLayout() {
       router.replace(to as any);
     }
   }, [rootNav?.key, ready, loggedIn, pathname, router]);
+
+  if (!fontsLoaded || !ready) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} />;
 }
