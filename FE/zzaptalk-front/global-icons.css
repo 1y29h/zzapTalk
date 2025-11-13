@@ -1,15 +1,15 @@
+/* Ionicons */
 @font-face {
   font-family: "Ionicons";
   src: url("/fonts/Ionicons.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
-  font-display: swap;
 }
 
+/* Feather */
 @font-face {
   font-family: "Feather";
   src: url("/fonts/Feather.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
-  font-display: swap;
 }

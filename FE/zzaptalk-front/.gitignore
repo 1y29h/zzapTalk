@@ -5,12 +5,11 @@
 # =========================
 # DEPENDENCIES
 # =========================
-node_modules/
+/node_modules
 
 # =========================
 # BUILD / OUTPUT
 # =========================
-dist/
 dist-ssr/
 web-build/
 coverage/

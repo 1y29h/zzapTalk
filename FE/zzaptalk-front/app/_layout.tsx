@@ -11,6 +11,7 @@ import { restoreSession, onAuthChange } from "../src/lib/authSession";
 import { useFonts } from "expo-font";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { View, ActivityIndicator } from "react-native";
+import "../global-icons.css"; // 또는 "../global.css"
 
 /** 로그인 없이 접근 가능한 공개 경로 */
 const PUBLIC = new Set<string>(["/login", "/signup"]);
