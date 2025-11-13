@@ -41,11 +41,11 @@ public class ChatRoomService {
 
         // 1. 기존 방을 찾을 경우
         return chatRoomUserRepository.findSingleChatRoomBetweenUsers(userA.getId(), userB.getId())
-                .map(chatRoom -> new ChatRoomCreationResult(chatRoom, false)) // ⭐️ 기존 방을 찾음 (false)
+                .map(chatRoom -> new ChatRoomCreationResult(chatRoom, false))
                 .orElseGet(() -> {
                     // 2. 방이 없을 경우: 새로 생성
                     ChatRoom newRoom = createSingleChatRoom(userA, userB);
-                    return new ChatRoomCreationResult(newRoom, true); // ⭐️ 새로 생성함 (true)
+                    return new ChatRoomCreationResult(newRoom, true);
                 });
     }
 
@@ -161,11 +161,86 @@ public class ChatRoomService {
                 .map(User::getNickname)
                 .collect(java.util.stream.Collectors.toList());
 
-        return new ChatRoomResponse(
-                chatRoom.getId(),
-                chatRoom.getName(),
-                memberNicknames
-        );
+        return ChatRoomResponse.builder()
+                .roomId(chatRoom.getId())
+                .roomName(chatRoom.getName())
+                .memberNicknames(memberNicknames)
+                // 나머지 필드는 DTO 구조에 맞게 명시적으로 null 또는 기본값 처리
+                .unreadCount(0) // 새로 생성된 방이므로 0
+                .lastMessageContent(null)
+                .lastMessageTime(null)
+                .build();
+
+    }
+
+    // -------------------------------------------------------------------------
+    // 사용자가 현재 참여 중인 모든 채팅방 목록 조회(Controller에서 사용)
+    //
+    // @param currentUserId 현재 로그인된 사용자 ID
+    // @return ChatRoomResponse 목록
+    // -------------------------------------------------------------------------
+
+    @Transactional(readOnly = true)
+    public List<ChatRoomResponse> getChatRoomsByUserId(Long currentUserId) {
+
+        // 1. 현재 로그인된 사용자 엔티티 조회
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 ID를 찾을 수 없습니다: " + currentUserId));
+
+        // 2. 해당 사용자가 참여하고 있는 모든 ChatRoomUser 레코드 조회
+        // (ChatRoom, User 정보 함께 로딩)
+        List<ChatRoomUser> roomUsers = chatRoomUserRepository.findAllByUserWithChatRoomAndUser(currentUser);
+
+        // 3. ChatRoomUser 목록을 ChatRoomResponse DTO 목록으로 변환
+        return roomUsers.stream()
+                .map(roomUser -> {
+                    ChatRoom chatRoom = roomUser.getChatRoom();
+                    List<String> memberNicknames = getMemberNicknames(chatRoom.getId());
+
+                    return ChatRoomResponse.builder()
+                            .roomId(chatRoom.getId())
+                            // 1:1 채팅방의 경우 상대방 닉네임으로 방 이름을 표시
+                            .roomName(getDisplayRoomName(chatRoom, memberNicknames, currentUser.getNickname()))
+                            .memberNicknames(memberNicknames)
+                            .unreadCount(roomUser.getUnreadCount())
+                            .lastMessageTime(chatRoom.getLastMessageTime())
+                            .lastMessageContent(chatRoom.getLastMessageContent())
+                            .build();
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    // -------------------------------------------------------------------------
+    // 채팅방 멤버 닉네임 목록 조회
+    // -------------------------------------------------------------------------
+
+    private List<String> getMemberNicknames(Long roomId) {
+        List<ChatRoomUser> roomUsers = chatRoomUserRepository.findAllByChatRoomIdWithUser(roomId);
+        return roomUsers.stream()
+                .map(roomUser -> roomUser.getUser().getNickname())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    // -------------------------------------------------------------------------
+    // 보조 메서드: 1:1 채팅방 이름 처리 (상대방 닉네임 반환)
+    // -------------------------------------------------------------------------
+
+    private String getDisplayRoomName(ChatRoom chatRoom, List<String> memberNicknames, String currentNickname) {
+
+        // 그룹 채팅방은 DB에 저장된 이름 사용
+        if (chatRoom.getType() == ChatRoomType.GROUP) {
+            return chatRoom.getName();
+        }
+
+        // 1:1 채팅방 (SINGLE)은 이름이 null이므로, 상대방의 닉네임을 방 이름으로 사용
+        if (chatRoom.getType() == ChatRoomType.SINGLE) {
+            return memberNicknames.stream()
+                    .filter(nickname -> !nickname.equals(currentNickname))
+                    .findFirst()
+                    .orElse("알 수 없는 사용자");
+        }
+
+        return chatRoom.getName();
 
     }
 
