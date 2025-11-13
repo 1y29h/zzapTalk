@@ -25,4 +25,10 @@ public interface ChatRoomUserRepository extends JpaRepository<ChatRoomUser, Long
     // 특정 채팅방의 모든 참여자 정보 가져오기
     List<ChatRoomUser> findAllByChatRoom(ChatRoom chatRoom);
 
+    @Query("SELECT cru FROM ChatRoomUser cru JOIN FETCH cru.chatRoom cr JOIN FETCH cru.user u WHERE cru.user = :user ORDER BY cr.lastMessageTime DESC")
+    List<ChatRoomUser> findAllByUserWithChatRoomAndUser(@Param("user") User user);
+
+    @Query("SELECT cru FROM ChatRoomUser cru JOIN FETCH cru.user u WHERE cru.chatRoom.id = :roomId")
+    List<ChatRoomUser> findAllByChatRoomIdWithUser(@Param("roomId") Long roomId);
+
 }

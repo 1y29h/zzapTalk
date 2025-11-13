@@ -1,10 +1,8 @@
 package com.zzaptalk.backend.controller;
 
-import com.zzaptalk.backend.dto.ChatRoomCreationResult;
-import com.zzaptalk.backend.dto.GroupChatRoomRequest;
-import com.zzaptalk.backend.dto.ChatRoomResponse;
-import com.zzaptalk.backend.dto.SingleChatRoomRequest;
+import com.zzaptalk.backend.dto.*;
 import com.zzaptalk.backend.entity.ChatRoom;
+import com.zzaptalk.backend.service.ChatMessageService;
 import com.zzaptalk.backend.service.ChatRoomService;
 import com.zzaptalk.backend.service.CustomUserDetails;
 import com.zzaptalk.backend.repository.UserRepository;
@@ -14,8 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,6 +21,7 @@ import java.util.List;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+    private final ChatMessageService chatMessageService;
     private final UserRepository userRepository;
 
     // -------------------------------------------------------------------------
@@ -75,20 +74,22 @@ public class ChatRoomController {
         ChatRoomCreationResult result = chatRoomService.findOrCreateSingleChatRoom(userA, userB);
         ChatRoom chatRoom = result.chatRoom();
 
-        // 응답 DTO 생성
         List<String> memberNicknames = List.of(userA.getNickname(), userB.getNickname());
 
-        ChatRoomResponse response = new ChatRoomResponse(
-                chatRoom.getId(),
-                chatRoom.getName(), // 보통 null
-                memberNicknames
-        );
+        ChatRoomResponse response = ChatRoomResponse.builder()
+                .roomId(chatRoom.getId())
+                .roomName(chatRoom.getName())
+                .memberNicknames(memberNicknames)
+                .unreadCount(0)
+                .lastMessageTime(chatRoom.getLastMessageTime())
+                .lastMessageContent(chatRoom.getLastMessageContent())
+                .build();
 
         if (result.isNew()) {
-            // 새로 생성된 경우: 201 Created 반환
+            // 새로 생성된 경우: 201 Created
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
-            // 기존 방을 찾은 경우: 200 OK 반환
+            // 기존 방을 찾은 경우: 200 OK
             return ResponseEntity.ok(response);
         }
 
@@ -101,6 +102,48 @@ public class ChatRoomController {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(e.getMessage());
+    }
+
+    // -------------------------------------------------------------------------
+    // 채팅방 목록 조회
+    // -------------------------------------------------------------------------
+
+    @GetMapping("/list")
+    public ResponseEntity<List<ChatRoomResponse>> getChatRoomList(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        // 1. 현재 로그인된 사용자 ID 획득
+        Long currentUserId = userDetails.getUserId();
+
+        // 2. 서비스 호출: 해당 사용자가 참여하고 있는 모든 채팅방 목록 조회
+        List<ChatRoomResponse> chatRoomList = chatRoomService.getChatRoomsByUserId(currentUserId);
+
+        // 3. 200 OK와 함께 목록 반환
+        return ResponseEntity.ok(chatRoomList);
+    }
+
+    // -------------------------------------------------------------------------
+    // 채팅방 이전 메시지 조회
+    // -------------------------------------------------------------------------
+
+    @GetMapping("/{roomId}/messages")
+    public ResponseEntity<List<ChatMessageResponse>> getChatMessages(
+            @PathVariable Long roomId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        // 서비스 호출: 해당 방의 모든 메시지 목록을 오래된 순으로 가져옴
+        // (ChatMessageService는 List<ChatMessage>를 반환하고, DTO 변환 과정에서 N+1을 피하기 위해 User 엔티티가 필요)
+
+        // ChatMessageService.getChatMessages(Long roomId)는 List<ChatMessage>를 반환하며,
+        // DTO 변환을 위해 Service 계층에서 닉네임을 조회하여 DTO로 변환하여 반환하도록 변경해야 함
+        // -> ChatMessageService가 List<ChatMessage>를 반환하고, Stream을 사용하여 DTO로 변환
+
+        List<ChatMessageResponse> messages = chatMessageService.getChatMessages(roomId).stream()
+                .map(message -> ChatMessageResponse.fromEntity(message, message.getSender().getNickname()))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(messages);
+
     }
 
 }
