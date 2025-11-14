@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -45,12 +46,17 @@ public class Friendship {
 
     // 즐겨찾기 여부
     @Column(nullable = false)
+    @Builder.Default
     private boolean isFavorite = false;
 
-    // 커스텀 그룹 이름 (nullable, 기본 그룹은 null)
-    // 예: "대학친구", "회사동료" 등
-    @Column
-    private String customGroupName;
+//    // 커스텀 그룹 이름 (nullable, 기본 그룹은 null)
+//    // 예: "대학친구", "회사동료" 등
+//    @Column
+//    private String customGroupName;
+    // 추가할 부분:
+    @OneToMany(mappedBy = "friendship", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FriendGroupMapping> groupMappings;
+
 
     // -------------------------------------------------------------------------
     // 메타 정보

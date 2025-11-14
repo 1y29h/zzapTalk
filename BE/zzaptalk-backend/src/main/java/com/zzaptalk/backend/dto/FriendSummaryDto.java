@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 친구 목록에 표시될 친구 요약 정보
@@ -18,6 +19,11 @@ public class FriendSummaryDto {
 
     // 친구의 User ID
     private Long userId;
+
+    // 친구 관계 ID (Friendship 테이블의 PK) -> 나와 친구의 관계를 나타냄
+    // ex) 연성 userId = 1, 꿀떡 userId=2 -> 친구관계 ID friendshipId=17
+    // 이 값으로 그룹에 추가/제거 작업을 수행
+    private Long friendshipId;
 
     // 닉네임
     private String nickname;
@@ -35,5 +41,6 @@ public class FriendSummaryDto {
     private boolean isFavorite;
 
     // 커스텀 그룹명
-    private String customGroupName;
+    // -> 수정 (단일그룹명(String) -> 여러 그룹 (List<FriendGroupDto)))
+    private List<FriendGroupDto> groups;
 }

@@ -1,8 +1,12 @@
 package com.zzaptalk.backend.service;
 
 import com.zzaptalk.backend.dto.*;
+import com.zzaptalk.backend.entity.FriendGroup;
+import com.zzaptalk.backend.entity.FriendGroupMapping;
 import com.zzaptalk.backend.entity.Friendship;
 import com.zzaptalk.backend.entity.User;
+import com.zzaptalk.backend.repository.FriendGroupMappingRepository;
+import com.zzaptalk.backend.repository.FriendGroupRepository;
 import com.zzaptalk.backend.repository.FriendshipRepository;
 import com.zzaptalk.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +25,8 @@ public class FriendService {
 
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final FriendGroupRepository friendGroupRepository;
+    private final FriendGroupMappingRepository friendGroupMappingRepository;
 
     // =========================================================================
     // 1. 친구 목록 조회 (메인 로직)
@@ -57,12 +63,17 @@ public class FriendService {
             // DTO 생성
             FriendSummaryDto dto = FriendSummaryDto.builder()
                     .userId(friend.getId())
+                    .friendshipId(fs.getId())  // Friendship의 ID를 추가
                     .nickname(friend.getNickname())
                     .profilePhotoUrl(friend.getProfilePhotoUrl())
                     .statusMessage(friend.getStatusMessage())
                     .birthday(friend.getBirthday())
                     .isFavorite(fs.isFavorite())
-                    .customGroupName(fs.getCustomGroupName())
+                    .groups(fs.getGroupMappings().stream()
+                            .map(mapping -> FriendGroupDto.builder()
+                                    .groupName(mapping.getFriendGroup().getGroupName())
+                                    .build())
+                            .collect(Collectors.toList()))
                     .build();
 
             // 4-1. 생일인 친구 (오늘 기준 ±7일)
@@ -82,15 +93,18 @@ public class FriendService {
             }
 
             // 4-3. 커스텀 그룹 친구
-            if (fs.getCustomGroupName() != null && !fs.getCustomGroupName().isBlank()) {
+            // 수정: 각 Friendship의 groupMappings를 순회하며 각 그룹에 친구 추가
+            for (FriendGroupMapping mapping : fs.getGroupMappings()) {
+                String groupName = mapping.getFriendGroup().getGroupName();
                 customGroupMap
-                        .computeIfAbsent(fs.getCustomGroupName(), k -> new ArrayList<>())
+                        .computeIfAbsent(groupName, k -> new ArrayList<>())
                         .add(dto);
             }
 
             // 4-4. 기타 친구 (즐겨찾기X, 커스텀그룹X)
             if (!fs.isFavorite() &&
-                    (fs.getCustomGroupName() == null || fs.getCustomGroupName().isBlank())) {
+                    // 수정: groupMappings가 비어있는지 확인
+                    fs.getGroupMappings().isEmpty()) {
                 otherFriends.add(dto);
             }
         }
@@ -179,12 +193,17 @@ public class FriendService {
         return friendships.stream()
                 .map(fs -> FriendSummaryDto.builder()
                         .userId(fs.getFriend().getId())
+                        .friendshipId(fs.getId())  // Friendship의 ID를 추가
                         .nickname(fs.getFriend().getNickname())
                         .profilePhotoUrl(fs.getFriend().getProfilePhotoUrl())
                         .statusMessage(fs.getFriend().getStatusMessage())
                         .birthday(fs.getFriend().getBirthday())
                         .isFavorite(fs.isFavorite())
-                        .customGroupName(fs.getCustomGroupName())
+                        .groups(fs.getGroupMappings().stream()
+                                .map(mapping -> FriendGroupDto.builder()
+                                        .groupName(mapping.getFriendGroup().getGroupName())
+                                        .build())
+                                .collect(Collectors.toList()))
                         .build())
                 .collect(Collectors.toList());
     }
@@ -243,13 +262,6 @@ public class FriendService {
             friendship.setFavorite(dto.getIsFavorite());
         }
 
-        // 4. 커스텀 그룹명 업데이트 (값이 있는 경우에만, null이면 그룹 해제)
-        if (dto.getCustomGroupName() != null) {
-            friendship.setCustomGroupName(
-                    dto.getCustomGroupName().isBlank() ? null : dto.getCustomGroupName()
-            );
-        }
-
         // 5. 저장 (변경 감지로 자동 업데이트됨)
         friendshipRepository.save(friendship);
     }
@@ -294,12 +306,13 @@ public class FriendService {
             // 3-4. 추가된 친구 DTO 생성
             FriendSummaryDto friendDto = FriendSummaryDto.builder()
                     .userId(friend.getId())
+                    .friendshipId(newFriendship.getId())  // 방금 생성한 Friendship의 ID
                     .nickname(friend.getNickname())
                     .profilePhotoUrl(friend.getProfilePhotoUrl())
                     .statusMessage(friend.getStatusMessage())
                     .birthday(friend.getBirthday())
                     .isFavorite(false)
-                    .customGroupName(null)
+                    //.customGroupName(null)
                     .build();
 
             addedFriends.add(friendDto);
@@ -327,4 +340,105 @@ public class FriendService {
 
         friendshipRepository.delete(friendship);
     }
+
+    // ============================
+    // 8. 그룹 생성 메서드 추가
+    // ============================
+    // 새 메서드:
+    public FriendGroup createGroup(Long userId, String groupName) {
+        // 1. 중복 체크
+        if (friendGroupRepository.existsByUserIdAndGroupName(userId, groupName)) {
+            throw new IllegalArgumentException("이미 존재하는 그룹명입니다.");
+        }
+
+        // 2. 그룹 생성
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        FriendGroup group = FriendGroup.builder()
+                .user(user)
+                .groupName(groupName)
+                .build();
+
+        return friendGroupRepository.save(group);
+    }
+
+
+
+    // ================
+    // 10. 친구를 그룹에 추가하는 메서드 추가
+    // =================================
+    // 새 메서드:
+    public void addFriendToGroup(Long currentUserId, Long friendshipId, Long groupId) {
+        // 1. 중복 체크
+        if (friendGroupMappingRepository.existsByFriendshipIdAndFriendGroupId(friendshipId, groupId)) {
+            throw new IllegalArgumentException("이미 해당 그룹에 추가된 친구입니다.");
+        }
+
+        // 2. Friendship과 FriendGroup 존재 여부 확인
+        Friendship friendship = friendshipRepository.findById(friendshipId)
+                .orElseThrow(() -> new IllegalArgumentException("친구 관계를 찾을 수 없습니다."));
+
+        FriendGroup group = friendGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
+
+        // 2.5. 권한 검증
+        // 해당 friendship이 현재 사용자의 것인지 확인
+        if (!friendship.getUser().getId().equals(currentUserId)) {
+            throw new IllegalArgumentException("본인의 친구만 그룹에 추가할 수 있습니다.");
+        }
+
+        // 해당 group이 현재 사용자의 것인지 확인
+        if (!group.getUser().getId().equals(currentUserId)) {
+            throw new IllegalArgumentException("본인의 그룹에만 친구를 추가할 수 있습니다.");
+        }
+
+        // 3. 매핑 생성
+        FriendGroupMapping mapping = FriendGroupMapping.builder()
+                .friendship(friendship)
+                .friendGroup(group)
+                .build();
+
+        friendGroupMappingRepository.save(mapping);
+    }
+
+    // ===========
+    // 11. 그룹에서 친구 제거 메서드 추가
+    //     -> 그룹에서만 제거하고 친구관계는 유지해야되서
+    // ===================
+    // 새 메서드:
+    @Transactional
+    public void removeFriendFromGroup(Long currentUserId, Long friendshipId, Long groupId) {
+        // 1. 존재 여부 및 권한 확인
+        Friendship friendship = friendshipRepository.findById(friendshipId)
+                .orElseThrow(() -> new IllegalArgumentException("친구 관계를 찾을 수 없습니다."));
+
+        FriendGroup group = friendGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
+
+        // 2. 권한 검증
+        if (!friendship.getUser().getId().equals(currentUserId)) {
+            throw new IllegalArgumentException("본인의 친구만 그룹에서 제거할 수 있습니다.");
+        }
+
+        if (!group.getUser().getId().equals(currentUserId)) {
+            throw new IllegalArgumentException("본인의 그룹에서만 친구를 제거할 수 있습니다.");
+        }
+
+        // 3. 삭제 실행
+        friendGroupMappingRepository.deleteByFriendshipIdAndFriendGroupId(friendshipId, groupId);
+    }
+
+    // ===========
+    // 12. 내 그룹 목록 조회
+    // ===========
+    @Transactional(readOnly = true)
+    public List<FriendGroup> getMyGroups(Long userId) {
+        return friendGroupRepository.findByUserId(userId);
+    }
+
+
+
+
+
 }

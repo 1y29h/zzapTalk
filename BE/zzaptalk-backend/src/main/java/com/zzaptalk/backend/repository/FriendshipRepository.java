@@ -49,9 +49,9 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     List<Friendship> findByUserAndIsFavoriteTrue(User user);
 
     // 특정 그룹의 친구들 조회
-    List<Friendship> findByUserAndCustomGroupName(User user, String customGroupName);
+    //List<Friendship> findByUserAndCustomGroupName(User user, String customGroupName);
 
     // 그룹에 속하지 않은 친구들 조회
-    List<Friendship> findByUserAndCustomGroupNameIsNull(User user);
+    //List<Friendship> findByUserAndCustomGroupNameIsNull(User user);
 
 }

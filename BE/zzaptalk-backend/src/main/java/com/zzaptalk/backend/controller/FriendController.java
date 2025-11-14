@@ -1,13 +1,16 @@
 package com.zzaptalk.backend.controller;
 
 import com.zzaptalk.backend.dto.*;
+import com.zzaptalk.backend.entity.FriendGroup;
 import com.zzaptalk.backend.entity.User;
+import com.zzaptalk.backend.repository.FriendGroupRepository;
 import com.zzaptalk.backend.service.CustomUserDetails;
 import com.zzaptalk.backend.service.FriendService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +22,7 @@ import java.util.List;
 public class FriendController {
 
     private final FriendService friendService;
+    private final FriendGroupRepository friendGroupRepository;
 
     // =========================================================================
     // 1. 친구 목록 전체 조회
@@ -155,4 +159,95 @@ public class FriendController {
                     .body(e.getMessage());
         }
     }
+
+    // ===============
+    // 그룹 생성 API 추가
+    // -> 사용자가 새 그룹을 만들 수 있어야함
+    // ===============
+    @PostMapping("/groups")
+    public ResponseEntity<?> createGroup(
+            @RequestBody CreateGroupRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        try {
+            FriendGroup group = friendService.createGroup(
+                    userDetails.getUser().getId(),
+                    request.getGroupName()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(group);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    // ===========
+    // 그룹 목록 조쇠 API
+    // -> 사용자가 자신이 만든 그룹 목록을 볼 수 있어야 함
+    // ================
+    @GetMapping("/groups")
+    public ResponseEntity<?> getMyGroups(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            List<FriendGroup> groups = friendService.getMyGroups(userDetails.getUser().getId());
+            return ResponseEntity.ok(groups);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("그룹 목록 조회 중 오류가 발생했습니다.");
+        }
+    }
+
+    // ========
+    // 친구를 그룹에 추가 API
+    // -> 친구를 특정 그룹에 추가하는 기능
+    // =============
+    @PostMapping("/groups/members")
+    public ResponseEntity<?> addFriendToGroup(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody AddFriendToGroupRequest request) {
+        try {
+            friendService.addFriendToGroup(
+                    userDetails.getUser().getId(),
+                    request.getFriendshipId(),
+                    request.getGroupId());
+            return ResponseEntity.ok("그룹에 친구가 추가되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    // =============
+    // 그룹에서 친구 제거 API
+    // -> 그룹에서만 유지, 친구관계는 유지
+    // ==============
+    @DeleteMapping("/groups/{groupId}/members/{friendshipId}")
+    public ResponseEntity<?> removeFriendFromGroup(
+            @AuthenticationPrincipal CustomUserDetails userDetails,  // 추가
+            @PathVariable Long groupId,
+            @PathVariable Long friendshipId
+    ) {
+        try {
+            // userId도 전달 (추가)
+            friendService.removeFriendFromGroup(
+                    userDetails.getUser().getId(),
+                    friendshipId,
+                    groupId
+            );
+            return ResponseEntity.ok("그룹에서 친구가 제거되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    // ===> 30번 라인 중복 메서드 제거
+//    // 기존 메서드 수정
+//    @GetMapping("/list")
+//    public ResponseEntity<?> getFriendList(Authentication authentication) {
+//        // 반환 데이터에 그룹 정보 포함
+//        // FriendSummaryDto에 groups 필드 추가됨
+//    }
+
+
+
+
+
+
 }
