@@ -6,12 +6,11 @@ import {
   useRootNavigationState,
 } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { Platform, View, ActivityIndicator } from "react-native";
 import { restoreSession, onAuthChange } from "../src/lib/authSession";
 import { useFonts } from "expo-font";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { View, ActivityIndicator } from "react-native";
-import "../global-icons.css"; // 또는 "../global.css"
+import "../global-icons.css"; // 웹용 아이콘 폰트(css) 로드
 
 /** 로그인 없이 접근 가능한 공개 경로 */
 const PUBLIC = new Set<string>(["/login", "/signup"]);
@@ -31,10 +30,17 @@ export default function RootLayout() {
   const [loggedIn, setLoggedIn] = useState(false);
   const lastRedirect = useRef<string>("");
 
-  const [fontsLoaded] = useFonts({
-    ...Ionicons.font,
-    ...MaterialIcons.font,
-  });
+  // 👇 아이콘 폰트 로딩 부분만 수정
+  const isWeb = Platform.OS === "web";
+
+  const [fontsLoaded] = useFonts(
+    isWeb
+      ? {} // 웹에서는 expo-font로 아이콘 폰트 로드 X (global-icons.css 사용)
+      : {
+          ...Ionicons.font,
+          ...MaterialIcons.font,
+        }
+  );
 
   // (선택) 웹에서 포커스 잔상 제거
   useEffect(() => {
