@@ -1,4 +1,3 @@
-// app/chat/[id].tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -72,12 +71,17 @@ async function sendCompat(roomId: number, myId: number, content: string) {
 }
 
 export default function ChatRoomScreen() {
+  // ✅ 목록/생성 쪽에서 넘긴 title 같이 받기
   const { id, title } = useLocalSearchParams<{ id?: string; title?: string }>();
   const roomId = Number(id);
 
   const router = useRouter();
   const rootNav = useRootNavigationState();
   const navReady = !!rootNav?.key;
+
+  // 헤더에 쓸 제목: title이 있으면 그걸 쓰고, 없으면 기존처럼 번호
+  const headerTitle =
+    typeof title === "string" && title.length > 0 ? title : `채팅방 ${roomId}`;
 
   // 로딩 분리(초기 / 백그라운드 동기화)
   const [initialLoading, setInitialLoading] = useState(true);
@@ -296,7 +300,8 @@ export default function ChatRoomScreen() {
           <Ionicons name="chevron-back" size={22} color="#111" />
         </Pressable>
 
-        <Text style={styles.headerTitle}>{title || `채팅방 ${roomId}`}</Text>
+        {/* ✅ 여기서 headerTitle 사용 */}
+        <Text style={styles.headerTitle}>{headerTitle}</Text>
 
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Pressable onPress={() => {}} style={styles.headerBtn}>

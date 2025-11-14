@@ -60,10 +60,14 @@ export default function ChatListScreen() {
     return rooms.filter((r) => (r.roomName || "").toLowerCase().includes(q));
   }, [rooms, query]);
 
-  const goRoom = (roomId: number) =>
+  /** ✅ 방으로 이동할 때 제목까지 같이 넘기기 */
+  const goRoom = (roomId: number, roomTitle?: string | null) =>
     router.push({
       pathname: "/chat/[id]",
-      params: { id: String(roomId) },
+      params: {
+        id: String(roomId),
+        ...(roomTitle ? { title: roomTitle } : {}),
+      },
     } as Href);
 
   /** 개인 채팅 생성 */
@@ -80,10 +84,15 @@ export default function ChatListScreen() {
       setTargetUserId("");
 
       const roomId = (room as any)?.roomId;
+      const roomTitle =
+        (room as any)?.roomName ||
+        (room as any)?.targetNickname ||
+        (roomId ? `채팅방 ${roomId}` : undefined);
+
       if (roomId) {
-        // ✅ 먼저 방으로 이동
-        goRoom(roomId);
-        // ✅ 목록 새로고침은 뒤로 미룸(네비 영향 X)
+        //먼저 방으로 이동 (제목 포함)
+        goRoom(roomId, roomTitle);
+        //목록 새로고침은 뒤로 미룸(네비 영향 X)
         setTimeout(() => {
           load().catch(() => {});
         }, 0);
@@ -109,9 +118,14 @@ export default function ChatListScreen() {
       setInvitedIds("");
 
       const roomId = room?.roomId ?? (room as any)?.roomId;
+      const roomTitle =
+        groupTitle.trim() ||
+        room?.roomName ||
+        (roomId ? `채팅방 ${roomId}` : undefined);
+
       if (roomId) {
-        // ✅ 먼저 이동
-        goRoom(roomId);
+        // ✅ 먼저 이동 (제목 포함)
+        goRoom(roomId, roomTitle);
         // ✅ 목록은 비동기 갱신
         setTimeout(() => {
           load().catch(() => {});
@@ -123,7 +137,10 @@ export default function ChatListScreen() {
   };
 
   const renderItem = ({ item }: { item: ChatRoomUserListItem }) => (
-    <Pressable onPress={() => goRoom(item.roomId)} style={listStyles.row}>
+    <Pressable
+      onPress={() => goRoom(item.roomId, item.roomName || null)}
+      style={listStyles.row}
+    >
       <View style={listStyles.avatar}>
         <Text style={listStyles.avatarLetter}>
           {(item.roomName || "채팅").slice(0, 1)}
