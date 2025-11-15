@@ -1,3 +1,4 @@
+// app/chat/[id].tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -37,8 +38,9 @@ let sendChatMessageRaw:
 let subscribeRoom:
   | undefined
   | ((roomId: number, cb: (m: ChatMessageResponse) => void) => () => void);
+
 try {
-  const mod = require("../../src/services/socket");
+  const mod = require("../../src/services/socket"); // ✅ 경로 통일
   connectStomp = mod.connectStomp;
   disconnectStomp = mod.disconnectStomp;
   sendChatMessageRaw = mod.sendChatMessage;
@@ -79,9 +81,9 @@ export default function ChatRoomScreen() {
   const rootNav = useRootNavigationState();
   const navReady = !!rootNav?.key;
 
-  // 헤더에 쓸 제목: title이 있으면 그걸 쓰고, 없으면 기존처럼 번호
+  // ✅ 제목: title(상대 이름)이 있으면 그걸 사용, 없으면 "채팅"
   const headerTitle =
-    typeof title === "string" && title.length > 0 ? title : `채팅방 ${roomId}`;
+    typeof title === "string" && title.length > 0 ? title : "채팅";
 
   // 로딩 분리(초기 / 백그라운드 동기화)
   const [initialLoading, setInitialLoading] = useState(true);
@@ -300,7 +302,6 @@ export default function ChatRoomScreen() {
           <Ionicons name="chevron-back" size={22} color="#111" />
         </Pressable>
 
-        {/* ✅ 여기서 headerTitle 사용 */}
         <Text style={styles.headerTitle}>{headerTitle}</Text>
 
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -337,7 +338,7 @@ export default function ChatRoomScreen() {
         />
       )}
 
-      {/* 하단 입력 바: +, 😀, 입력창(안쪽 오른쪽에 전송) */}
+      {/* 하단 입력 바 */}
       <View style={styles.inputBar}>
         <Pressable style={styles.circleBtn} onPress={() => {}}>
           <Ionicons name="add" size={20} color="#444" />
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 2,
-    borderBottomColor: PURPLE, // 상단 보라 라인
+    borderBottomColor: PURPLE,
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
@@ -427,7 +428,6 @@ const styles = StyleSheet.create({
   msgTextMine: { color: "#fff", fontSize: 15, lineHeight: 21 },
   msgTextOther: { color: "#111", fontSize: 15, lineHeight: 21 },
 
-  // 말풍선 "옆" 시간
   timeBeside: {
     fontSize: 11,
     color: "#8E8E8E",
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   input: {
     paddingLeft: 14,
-    paddingRight: 54, // 내부 전송 버튼 자리
+    paddingRight: 54,
     paddingVertical: 10,
     fontSize: 14,
     color: "#111",
