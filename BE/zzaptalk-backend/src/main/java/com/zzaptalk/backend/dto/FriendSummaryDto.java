@@ -42,5 +42,6 @@ public class FriendSummaryDto {
 
     // 커스텀 그룹명
     // -> 수정 (단일그룹명(String) -> 여러 그룹 (List<FriendGroupDto)))
-    private List<FriendGroupDto> groups;
+    private List<GroupSimpleDto> groups;
+    // 이거 그 친구 목록 json응답 받을 때 필요없는 부분 가져올 필요 없어서 GroupSimpleDto 만들어서 반환하는거
 }

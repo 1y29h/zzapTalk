@@ -36,7 +36,7 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     // JPA 쿼리 메소드로 Friend 엔티티의 nickname 필드 기준
     List<Friendship> findByUserAndFriendNicknameContaining(User user, String nicknameQuery);
 
-    // 본명으로도 검색 (선택사항)
+    // 본명으로도 검색
     @Query("SELECT f FROM Friendship f WHERE f.user = :user AND " +
             "(f.friend.nickname LIKE %:query% OR f.friend.name LIKE %:query%)")
     List<Friendship> searchFriendsByNameOrNickname(@Param("user") User user, @Param("query") String query);

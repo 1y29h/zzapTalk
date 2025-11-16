@@ -170,7 +170,8 @@ public class FriendController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         try {
-            FriendGroup group = friendService.createGroup(
+            // 반환 타입이 DTO로 변경됨
+            GroupResponseDto group = friendService.createGroup(
                     userDetails.getUser().getId(),
                     request.getGroupName()
             );
@@ -181,13 +182,16 @@ public class FriendController {
     }
 
     // ===========
-    // 그룹 목록 조쇠 API
+    // 그룹 목록 조회 API
     // -> 사용자가 자신이 만든 그룹 목록을 볼 수 있어야 함
     // ================
     @GetMapping("/groups")
-    public ResponseEntity<?> getMyGroups(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> createGroup(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
         try {
-            List<FriendGroup> groups = friendService.getMyGroups(userDetails.getUser().getId());
+            // 반환 타입이 DTO로 변경됨
+            List<GroupResponseDto> groups = friendService.getMyGroups(userDetails.getUser().getId());
             return ResponseEntity.ok(groups);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -237,17 +241,23 @@ public class FriendController {
         }
     }
 
-    // ===> 30번 라인 중복 메서드 제거
-//    // 기존 메서드 수정
-//    @GetMapping("/list")
-//    public ResponseEntity<?> getFriendList(Authentication authentication) {
-//        // 반환 데이터에 그룹 정보 포함
-//        // FriendSummaryDto에 groups 필드 추가됨
-//    }
 
-
-
-
+    // =========================================================================
+    // 그룹 삭제 API
+    // -> 그룹을 완전히 삭제 (그룹-친구 매핑도 함께 삭제됨)
+    // =========================================================================
+    @DeleteMapping("/groups/{groupId}")
+    public ResponseEntity<?> deleteGroup(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long groupId
+    ) {
+        try {
+            friendService.deleteGroup(userDetails.getUser().getId(), groupId);
+            return ResponseEntity.ok("그룹이 삭제되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 
 
 }

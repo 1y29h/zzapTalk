@@ -3,6 +3,8 @@ package com.zzaptalk.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -32,6 +34,10 @@ public class FriendGroup {
     // 그룹 생성 시각
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // FriendGroupMapping과의 관계
+    @OneToMany (mappedBy = "friendGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FriendGroupMapping> groupMappings = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
