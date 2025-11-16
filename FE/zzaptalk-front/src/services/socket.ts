@@ -125,30 +125,36 @@ export function isConnected() {
   return !!client?.connected && connected;
 }
 
-// ✅ 전송 (백엔드 명세: /chat.sendMessage.{roomId})
+/**
+ * ✅ 메시지 전송
+ * - STOMP destination: /app/chat/message
+ * - Body: { roomId, content, type }
+ * - Content-Type: application/json
+ *
+ * ChatRoomScreen 쪽에서는 sendCompat으로
+ * (roomId, myId, content) 를 넘기지만,
+ * 여기서는 백엔드 명세에 맞게 senderId는 실제 전송에서는 쓰지 않음.
+ */
 export async function sendChatMessage(
   roomId: number,
-  senderId: number,
+  senderId: number, // 넘어오지만 실제 payload에는 포함 X
   content: string,
   type: MessageType = "TEXT",
-  senderName?: string
+  senderName?: string // 이것도 전송 X (백엔드 DTO에 없음)
 ) {
   if (!client || !client.connected) throw new Error("STOMP not connected");
 
-  // 서버 구현차를 고려해 content와 message 모두 포함
-  const now = new Date().toISOString();
   const payload = {
-    roomId: String(roomId),
-    senderId: String(senderId),
-    content,
-    message: content,
-    type, // "TEXT" | "IMAGE" | "ENTER" | "LEAVE"
-    sentAt: now, // 일부 서버는 클라 타임을 참고만 함 (서버에서 덮어쓸 수 있음)
-    senderName, // 서버가 쓰면 전달, 아니면 무시
+    roomId, // Long
+    content, // String
+    type, // "TEXT" | "IMAGE" ...
   };
 
   client.publish({
-    destination: `/chat.sendMessage.${roomId}`,
+    destination: "/app/chat/message",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(payload),
   });
 }
