@@ -41,17 +41,11 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
             "(f.friend.nickname LIKE %:query% OR f.friend.name LIKE %:query%)")
     List<Friendship> searchFriendsByNameOrNickname(@Param("user") User user, @Param("query") String query);
 
-    // -------------------------------------------------------------------------
-    // 친구 필터링 (선택사항 - Service 레이어에서 처리 가능)
-    // -------------------------------------------------------------------------
-
-    // 즐겨찾기 친구만 조회
-    List<Friendship> findByUserAndIsFavoriteTrue(User user);
-
-    // 특정 그룹의 친구들 조회
-    //List<Friendship> findByUserAndCustomGroupName(User user, String customGroupName);
-
-    // 그룹에 속하지 않은 친구들 조회
-    //List<Friendship> findByUserAndCustomGroupNameIsNull(User user);
-
+    // Service 개선 (1:1 , 그룹 나눔)
+    @Query("SELECT DISTINCT f FROM Friendship f " +
+            "LEFT JOIN FETCH f.friend " +
+            "LEFT JOIN FETCH f.groupMappings gm " +
+            "LEFT JOIN FETCH gm.friendGroup " +
+            "WHERE f.user = :user")
+    List<Friendship> findByUserWithFetchJoin(@Param("user") User user);
 }

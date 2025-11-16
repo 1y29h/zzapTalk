@@ -1,5 +1,7 @@
 package com.zzaptalk.backend.dto;
 
+import com.zzaptalk.backend.entity.Friendship;
+import com.zzaptalk.backend.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 친구 목록에 표시될 친구 요약 정보
@@ -44,4 +47,26 @@ public class FriendSummaryDto {
     // -> 수정 (단일그룹명(String) -> 여러 그룹 (List<FriendGroupDto)))
     private List<GroupSimpleDto> groups;
     // 이거 그 친구 목록 json응답 받을 때 필요없는 부분 가져올 필요 없어서 GroupSimpleDto 만들어서 반환하는거
+
+
+    // FriendService 로직 개선
+    // N+1 문제 해결 -> 성능 개선!
+    public static FriendSummaryDto from(Friendship friendship) {
+        User friend = friendship.getFriend();
+        return FriendSummaryDto.builder()
+                .userId(friend.getId())
+                .friendshipId(friendship.getId())
+                .nickname(friend.getNickname())
+                .profilePhotoUrl(friend.getProfilePhotoUrl())
+                .statusMessage(friend.getStatusMessage())
+                .birthday(friend.getBirthday())
+                .isFavorite(friendship.isFavorite())
+                .groups(friendship.getGroupMappings().stream()
+                        .map(mapping -> GroupSimpleDto.builder()
+                                .groupName(mapping.getFriendGroup().getGroupName())
+                                .groupId(mapping.getFriendGroup().getId())
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
 }

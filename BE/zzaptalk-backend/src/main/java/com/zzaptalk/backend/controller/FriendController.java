@@ -1,16 +1,14 @@
 package com.zzaptalk.backend.controller;
 
 import com.zzaptalk.backend.dto.*;
-import com.zzaptalk.backend.entity.FriendGroup;
 import com.zzaptalk.backend.entity.User;
-import com.zzaptalk.backend.repository.FriendGroupRepository;
 import com.zzaptalk.backend.service.CustomUserDetails;
+import com.zzaptalk.backend.service.FriendGroupService;
 import com.zzaptalk.backend.service.FriendService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +20,7 @@ import java.util.List;
 public class FriendController {
 
     private final FriendService friendService;
-    private final FriendGroupRepository friendGroupRepository;
+    private final FriendGroupService friendGroupService;
 
     // =========================================================================
     // 1. 친구 목록 전체 조회
@@ -171,7 +169,7 @@ public class FriendController {
     ) {
         try {
             // 반환 타입이 DTO로 변경됨
-            GroupResponseDto group = friendService.createGroup(
+            GroupResponseDto group = friendGroupService.createGroup(
                     userDetails.getUser().getId(),
                     request.getGroupName()
             );
@@ -191,7 +189,7 @@ public class FriendController {
     ) {
         try {
             // 반환 타입이 DTO로 변경됨
-            List<GroupResponseDto> groups = friendService.getMyGroups(userDetails.getUser().getId());
+            List<GroupResponseDto> groups = friendGroupService.getMyGroups(userDetails.getUser().getId());
             return ResponseEntity.ok(groups);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -208,7 +206,7 @@ public class FriendController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody AddFriendToGroupRequest request) {
         try {
-            friendService.addFriendToGroup(
+            friendGroupService.addFriendToGroup(
                     userDetails.getUser().getId(),
                     request.getFriendshipId(),
                     request.getGroupId());
@@ -230,7 +228,7 @@ public class FriendController {
     ) {
         try {
             // userId도 전달 (추가)
-            friendService.removeFriendFromGroup(
+            friendGroupService.removeFriendFromGroup(
                     userDetails.getUser().getId(),
                     friendshipId,
                     groupId
@@ -252,7 +250,7 @@ public class FriendController {
             @PathVariable Long groupId
     ) {
         try {
-            friendService.deleteGroup(userDetails.getUser().getId(), groupId);
+            friendGroupService.deleteGroup(userDetails.getUser().getId(), groupId);
             return ResponseEntity.ok("그룹이 삭제되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
