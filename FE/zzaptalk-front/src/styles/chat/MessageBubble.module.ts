@@ -1,74 +1,68 @@
 import { StyleSheet, Platform } from "react-native";
 
 const PURPLE = "#C9C8FF";
-const GRAY = "#EFEFEF";
-const TIME = "#969696";
-
-/** 화면 폭에서 좌우 여백/시간 영역 등을 뺀 버블 최대폭 (웹 전용) */
-const WEB_MAX_BUBBLE = "calc(100vw - 120px)";
+const GRAY = "#EDEFF2";
+const TIME = "#9BA1A6";
 
 export default StyleSheet.create({
-  wrap: { marginBottom: 8 },
+  wrap: { marginBottom: 10 },
   wrapMine: { alignItems: "flex-end" },
   wrapOther: { alignItems: "flex-start" },
 
-  name: { fontSize: 11, color: "#777", marginBottom: 2 },
+  name: { fontSize: 12, color: "#1b1b1b", fontWeight: "600", marginBottom: 6 },
 
   row: {
     flexDirection: "row",
     alignItems: "flex-end",
     maxWidth: "100%",
-    // 줄바꿈 없이 가로로만 배치
     ...(Platform.OS === "web" ? ({ overflowX: "visible" } as any) : {}),
   },
   rowMine: { justifyContent: "flex-end" },
   rowOther: { justifyContent: "flex-start" },
 
-  /** 말풍선 */
   bubble: {
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 18,
-    // 콘텐츠 폭만큼 가로로 늘어나도록
-    flexShrink: 0, // 🔑 줄어들며 개행/쪼개짐 방지
+    flexShrink: 0,
     ...(Platform.OS === "web"
       ? ({
-          display: "inline-flex", // 콘텐츠 가로크기만큼
+          display: "inline-flex",
           width: "fit-content",
-          maxWidth: WEB_MAX_BUBBLE, // 화면 밖으로 너무 안 나가게 상한
-          overflowX: "auto", // 넘치면 버블 안에서 가로 스크롤
+          maxWidth: "calc(100vw - 120px)",
+          overflowX: "auto",
           overflowY: "hidden",
         } as any)
       : {}),
   },
   myBubble: {
     backgroundColor: PURPLE,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 8,
     marginLeft: 6,
   },
   otherBubble: {
     backgroundColor: GRAY,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: 8,
     marginRight: 6,
   },
 
-  /** 텍스트 */
   text: {
-    fontSize: 14,
+    fontSize: 15,
     color: "#1b1b1b",
-    lineHeight: 20,
+    lineHeight: 22,
     ...(Platform.OS === "web"
       ? ({
-          whiteSpace: "nowrap", // 🔑 절대 개행 금지
-          wordBreak: "keep-all", // 한글 문자 단위 개행 방지
+          whiteSpace: "nowrap",
+          wordBreak: "keep-all",
           display: "inline",
         } as any)
       : {}),
   },
 
   time: { fontSize: 11, color: TIME },
-  timeMine: { alignSelf: "flex-end", marginRight: 6 },
-  timeOther: { alignSelf: "flex-end" },
+  timeMine: { alignSelf: "flex-end", marginRight: 6, marginTop: 4 },
+  timeOther: { alignSelf: "flex-end", marginTop: 4 },
+
   avatar: {
     width: 36,
     height: 36,
@@ -76,7 +70,5 @@ export default StyleSheet.create({
     backgroundColor: "#D9D9D9",
     marginRight: 8,
   },
-  content: {
-    maxWidth: "78%",
-  },
+  content: { maxWidth: "78%" },
 });

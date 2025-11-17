@@ -1,111 +1,101 @@
 // app/_layout.tsx
-import { Stack, usePathname, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import { View, ActivityIndicator, Platform } from "react-native";
-import { Helmet } from "react-helmet";
+import {
+  Stack,
+  usePathname,
+  useRouter,
+  useRootNavigationState,
+} from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Platform, View, ActivityIndicator } from "react-native";
 import { restoreSession, onAuthChange } from "../src/lib/authSession";
+import { useFonts } from "expo-font";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import "../global-icons.css"; // 웹용 아이콘 폰트(css) 로드
 
-const PUBLIC_PATHS = new Set<string>(["/login", "/signup"]);
+/** 로그인 없이 접근 가능한 공개 경로 */
+const PUBLIC = new Set<string>(["/login", "/signup"]);
+
+/** 경로 정규화 */
 const norm = (p: string) => {
   const q = p.split("?")[0].split("#")[0];
-  if (q === "/") return "/";
-  return q.replace(/\/+$/, "");
+  return q === "/" ? "/" : q.replace(/\/+$/, "");
 };
-
-// 라우트 변경 시 웹에서 남은 포커스 강제 해제 (aria-hidden 이슈 방지)
-function useWebBlurOnRouteChange(pathname: string) {
-  useEffect(() => {
-    if (Platform.OS === "web" && typeof document !== "undefined") {
-      (document.activeElement as HTMLElement | null)?.blur?.();
-    }
-  }, [pathname]);
-}
 
 export default function RootLayout() {
   const router = useRouter();
   const pathname = usePathname();
+  const rootNav = useRootNavigationState();
+
   const [ready, setReady] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const lastRedirect = useRef<string>("");
 
-  useWebBlurOnRouteChange(pathname);
+  // 👇 아이콘 폰트 로딩 부분만 수정
+  const isWeb = Platform.OS === "web";
 
+  const [fontsLoaded] = useFonts(
+    isWeb
+      ? {} // 웹에서는 expo-font로 아이콘 폰트 로드 X (global-icons.css 사용)
+      : {
+          ...Ionicons.font,
+          ...MaterialIcons.font,
+        }
+  );
+
+  // (선택) 웹에서 포커스 잔상 제거
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    try {
+      (document.activeElement as any)?.blur?.();
+    } catch {}
+  }, [pathname]);
+
+  /** 세션 복구 & 로그인 상태 구독 */
   useEffect(() => {
     let alive = true;
-    const path = norm(pathname);
-
     (async () => {
-      try {
-        const loggedIn = await restoreSession();
-        if (!alive) return;
-        setReady(true);
-
-        if (!loggedIn) {
-          if (!PUBLIC_PATHS.has(path) && lastRedirect.current !== "/login") {
-            lastRedirect.current = "/login";
-            router.replace("/login");
-          }
-        } else {
-          if (PUBLIC_PATHS.has(path) && lastRedirect.current !== "/") {
-            lastRedirect.current = "/";
-            router.replace("/"); // 채팅 목록 루트
-          }
-        }
-      } catch {
-        if (!alive) return;
-        setReady(true);
-        if (!PUBLIC_PATHS.has(path) && lastRedirect.current !== "/login") {
-          lastRedirect.current = "/login";
-          router.replace("/login");
-        }
-      }
+      const ok = await restoreSession(); // 토큰 복원 + axios Authorization 세팅
+      if (!alive) return;
+      setLoggedIn(!!ok);
+      setReady(true);
     })();
-
-    // ✅ onAuthChange 콜백에서는 훅 사용 금지 -> location.pathname 사용
-    const off = onAuthChange((isLoggedIn) => {
-      const p = norm(
-        (Platform.OS === "web" && typeof window !== "undefined"
-          ? window.location.pathname
-          : pathname) || "/"
-      );
-      if (isLoggedIn) {
-        if (PUBLIC_PATHS.has(p) && lastRedirect.current !== "/") {
-          lastRedirect.current = "/";
-          router.replace("/");
-        }
-      } else {
-        if (!PUBLIC_PATHS.has(p) && lastRedirect.current !== "/login") {
-          lastRedirect.current = "/login";
-          router.replace("/login");
-        }
-      }
-    });
-
+    const off = onAuthChange((v) => setLoggedIn(v));
     return () => {
       alive = false;
       off();
     };
-  }, [router, pathname]);
+  }, []);
 
-  if (!ready) {
+  /** 라우팅 가드 */
+  useEffect(() => {
+    if (!rootNav?.key || !ready) return;
+
+    const curr = norm(pathname);
+    let to: string | null = null;
+
+    // 🔒 미로그인: 공개 경로만 허용
+    if (!loggedIn && !PUBLIC.has(curr)) {
+      to = "/login";
+    }
+
+    // 🔓 로그인 후 로그인/회원가입에 있으면 채팅으로
+    if (loggedIn && (curr === "/login" || curr === "/signup")) {
+      to = "/chat";
+    }
+
+    if (to && to !== curr && lastRedirect.current !== to) {
+      lastRedirect.current = to;
+      router.replace(to as any);
+    }
+  }, [rootNav?.key, ready, loggedIn, pathname, router]);
+
+  if (!fontsLoaded || !ready) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator />
       </View>
     );
   }
 
-  return (
-    <>
-      <Helmet>
-        <link rel="stylesheet" href="/global-icons.css" />
-        <link rel="icon" href="/favicon.png" />
-      </Helmet>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="signup" />
-        <Stack.Screen name="chat/[id]" />
-      </Stack>
-    </>
-  );
+  return <Stack screenOptions={{ headerShown: false, freezeOnBlur: true }} />;
 }
