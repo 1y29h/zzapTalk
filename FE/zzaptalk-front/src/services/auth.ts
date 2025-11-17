@@ -1,39 +1,11 @@
-// 🛑 [수정 1] import 변경
-import { post, ApiError } from "../lib/api";
+// src/services/auth.ts
+import { post, ApiError, setApiAuthToken } from "../lib/api";
+import { saveTokenWithExpiry } from "../lib/authStorage";
+import { parseJwt } from "../lib/jwt";
 
-/** ========================
- * 엔드포인트
- * ======================== */
-const AUTH = {
-  LOGIN: "/api/v1/users/login",
-  SIGNUP: "/api/v1/users/signup",
-  SMS_REQUEST: "/api/auth/sms/request",
-  SMS_VERIFY: "/api/auth/sms/verify",
-};
-
-/** ========================
- * 유틸
- * ======================== */
-const digits = (v?: string) => (v ? v.replace(/\D/g, "") : v || "");
-// (이하 유틸 함수들은 동일하게 유지)
-const cleanToken = (t: string) => String(t).trim().replace(/^"|"$/g, "");
-const looksLikeJwt = (v: string) =>
-  typeof v === "string" && v.split(".").length === 3;
-const parseJwtExpMs = (jwt: string) => {
-  try {
-    const [, payload] = jwt.split(".");
-    const json = JSON.parse(
-      atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
-    );
-    return typeof json?.exp === "number" ? json.exp * 1000 : null;
-  } catch {
-    return null;
-  }
-};
-
-/** ========================
+/* =========================
  * 타입
- * ======================== */
+ * ========================= */
 export type LoginPayload = {
   phoneNum?: string;
   email?: string;
@@ -41,110 +13,111 @@ export type LoginPayload = {
   pwd: string;
 };
 
-export type LoginResponse = {
-  accessToken: string;
-  tokenType: "Bearer";
-  expiresIn: number;
-  userId: number;
-  nickname: string;
-};
+type AuthLoginResponse =
+  | string
+  | {
+      accessToken?: string;
+      token?: string;
+      data?: { accessToken?: string; token?: string };
+    };
 
 export type SignupPayload = {
   phoneNum: string;
   pwd: string;
   name: string;
-  rrn: string;
+  rrn: string; // 주민번호 뒤 7자리
 };
 
-export type BaseResp = {
-  ok?: boolean;
-  success?: boolean;
-  message?: string;
-  msg?: string;
-};
-
-/** ========================
- * 로그인
- * ======================== */
-export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  // 1) 전처리 (동일)
+/* =========================
+ * 회원가입 (인증 불필요)
+ * POST /api/v1/users/signup
+ * ========================= */
+export async function signup(payload: SignupPayload): Promise<void> {
+  const phone = (payload.phoneNum || "").replace(/\D/g, "");
   const pwd = (payload.pwd || "").trim();
-  const phone = digits(payload.phoneNum);
+  const name = (payload.name || "").trim();
+  const rrn = (payload.rrn || "").replace(/\D/g, "").slice(0, 7);
+
+  if (phone.length < 10 || phone.length > 11) {
+    throw new ApiError("휴대폰 번호를 정확히 입력해 주세요.", 400, null);
+  }
+  if (!pwd) throw new ApiError("비밀번호를 입력해 주세요.", 400, null);
+  if (!name) throw new ApiError("이름을 입력해 주세요.", 400, null);
+  if (rrn.length !== 7) {
+    throw new ApiError("주민번호 뒷자리 7자리를 입력해 주세요.", 400, null);
+  }
+
+  const body = { phoneNum: phone, pwd, name, rrn };
+
+  // 인증 불필요 엔드포인트이므로 skipAuth 지정
+  await post("/api/v1/users/signup", body, { skipAuth: true });
+}
+
+/* =========================
+ * 로그인 (토큰 저장/설정)
+ * POST /api/v1/users/login
+ * ========================= */
+export async function login(payload: LoginPayload): Promise<string> {
+  // 입력 정리
+  const pwd = (payload.pwd || "").trim();
+  const phone = (payload.phoneNum || "").replace(/\D/g, "");
   const email = (payload.email || "").trim();
   const zzapID = (payload.zzapID || "").trim();
 
+  // 기본 검증
   if (!pwd) {
     throw new ApiError("비밀번호는 필수로 입력해야 합니다.", 400, null);
   }
   if (!phone && !email && !zzapID) {
     throw new ApiError(
-      "로그인 식별자(전화번호/이메일/ZzapID) 중 하나를 입력해야 합니다.",
+      "전화번호/이메일/ID 중 하나를 입력해 주세요.",
       400,
       null
     );
   }
 
+  // 요청 바디 구성
   const body: Record<string, string> = { pwd };
   if (phone) body.phoneNum = phone;
   else if (email) body.email = email;
-  else body.zzapID = zzapID; // 2) API 호출 // 🛑 [수정 2] 'api.post' -> 'post' 헬퍼 사용 // 'post' 헬퍼는 data를 바로 반환하므로 { data } 구조분해 X
+  else body.zzapID = zzapID;
 
-  const data = await post<LoginResponse>(AUTH.LOGIN, body, {
+  // 인증 불필요 엔드포인트 → skipAuth:true
+  const res = (await post<AuthLoginResponse>("/api/v1/users/login", body, {
     skipAuth: true,
-  }); // 3) 응답 검증 및 반환
+  })) as AuthLoginResponse;
 
-  if (!data?.accessToken || data.userId == null) {
-    throw new ApiError("로그인 응답 형식이 올바르지 않습니다.", 500, data);
-  } // 'data'가 바로 LoginResponse 객체입니다.
+  // 토큰 추출 (문자열/객체 응답 모두 지원)
+  const rawToken =
+    typeof res === "string"
+      ? res
+      : res?.accessToken ??
+        res?.token ??
+        res?.data?.accessToken ??
+        res?.data?.token ??
+        "";
 
-  return data;
-}
+  if (!rawToken) {
+    throw new ApiError("로그인 응답에 토큰이 없습니다.", 500, res);
+  }
 
-/** ========================
- * 회원가입 (서버가 text/plain 메시지 반환)
- * ======================== */
-export async function signup(payload: SignupPayload) {
-  const body = {
-    phoneNum: digits(payload.phoneNum),
-    pwd: (payload.pwd || "").trim(),
-    name: (payload.name || "").trim(),
-    rrn: (payload.rrn || "").trim(),
-  }; // 🛑 [수정 3] 'api.post' -> 'post' 헬퍼 사용
+  const finalToken = String(rawToken).trim().replace(/^"|"$/g, "");
 
-  const resText = await post<string>(AUTH.SIGNUP, body, {
-    responseType: "text",
-    transformResponse: (v: any) => v, // text 응답을 그대로 반환
-    skipAuth: true,
-  });
-  return resText.toString();
-}
+  // 토큰 저장 & 만료 처리
+  try {
+    const jwtPayload = parseJwt(finalToken);
+    const expSeconds = jwtPayload?.exp; // 초 단위
+    const expiresAtMs = expSeconds
+      ? expSeconds * 1000
+      : Date.now() + 60 * 60 * 1000; // fallback 1h
 
-/** ========================
- * (옵션) SMS 관련
- * ======================== */
-const isOk = (r: BaseResp | any) => {
-  if (typeof r === "boolean") return r;
-  if (r?.ok !== undefined) return !!r.ok;
-  if (r?.success !== undefined) return !!r.success;
-  return true;
-};
+    setApiAuthToken(finalToken);
+    await saveTokenWithExpiry(finalToken, expiresAtMs);
+  } catch (err) {
+    setApiAuthToken(finalToken);
+    // eslint-disable-next-line no-console
+    console.error("[auth.ts] 로그인 후 토큰 저장/설정 실패", err);
+  }
 
-export async function requestSmsCode(phoneNum: string) {
-  // 🛑 [수정 4] 'api.post' -> 'post' 헬퍼 사용
-  const data = await post<BaseResp>(
-    AUTH.SMS_REQUEST,
-    { phoneNum: digits(phoneNum) },
-    { skipAuth: true }
-  );
-  return { ok: isOk(data), ...data };
-}
-
-export async function verifySmsCode(phoneNum: string, code: string) {
-  // 🛑 [수정 5] 'api.post' -> 'post' 헬퍼 사용
-  const data = await post<BaseResp>(
-    AUTH.SMS_VERIFY,
-    { phoneNum: digits(phoneNum), code: (code || "").trim() },
-    { skipAuth: true }
-  );
-  return { ok: isOk(data), ...data };
+  return finalToken;
 }

@@ -2,41 +2,38 @@ import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
   header: {
-    height: 52,
-    paddingHorizontal: 12,
+    height: 56,
+    paddingHorizontal: 16,
     backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    // 얕은 그림자
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#f1f3f5",
   },
   leftGroup: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     flexShrink: 1,
-    gap: 6,
   },
   backBtn: {
-    padding: 6,
-    marginRight: 4,
-  },
-  title: {
-    maxWidth: 200,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#242424",
-  },
-  rightGroup: {
-    flexDirection: "row",
+    width: 44,
+    height: 44,
     alignItems: "center",
-    gap: 10,
+    justifyContent: "center",
   },
+  title: { maxWidth: 220, fontSize: 18, fontWeight: "700", color: "#242424" },
+  rightGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconBtn: {
-    padding: 6,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

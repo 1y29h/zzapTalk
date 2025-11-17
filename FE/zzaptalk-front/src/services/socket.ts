@@ -1,77 +1,160 @@
-import { CompatClient, IMessage, Stomp } from "@stomp/stompjs";
+// src/services/socket.ts
+import { Client, IMessage, StompHeaders } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import type { MessageType } from "../types/chat";
-import type { ChatMessageResponse } from "../types/chat";
+import type { ChatMessageResponse, MessageType } from "../types/chat";
 
-// (이 부분은 명세서와 일치하지 않지만, chat.ts에서 사용하므로 일단 둡니다)
-export type ChatPayload = {
-  roomId: number;
-  senderId: number;
-  content: string;
-  type: MessageType; // "TEXT" | "IMAGE" | "ENTER" | "LEAVE"
-};
+// .env 예) EXPO_PUBLIC_WS_BASE=https://api.zzaptalk.com/ws-stomp  (뒤에 / 없음)
+const WS_BASE = (
+  process.env.EXPO_PUBLIC_WS_BASE || "https://api.zzaptalk.com/ws"
+).replace(/\/+$/, "");
 
-let client: CompatClient | null = null;
+// 내부 상태
+let client: Client | null = null;
+let unsub: (() => void) | null = null;
+let connected = false;
 
-const WS_BASE = (process.env.EXPO_PUBLIC_WS_BASE || "").replace(/\/+$/, "");
+// 날짜를 ISO 문자열로 안전 변환
+function toIso(v?: any): string {
+  if (!v) return new Date().toISOString();
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "number") {
+    // epoch seconds 가능성까지 허용
+    const ms = v < 1e12 ? v * 1000 : v;
+    return new Date(ms).toISOString();
+  }
+  const n = Number(v);
+  if (!Number.isNaN(n) && String(n) === String(v)) {
+    const ms = n < 1e12 ? n * 1000 : n;
+    return new Date(ms).toISOString();
+  }
+  return new Date(v).toISOString();
+}
 
-// STOMP 연결
+// 수신 payload → ChatMessageResponse 정규화
+function normalize(body: any): ChatMessageResponse {
+  const msgId =
+    typeof body?.messageId === "number" || typeof body?.messageId === "string"
+      ? body.messageId
+      : typeof body?.id === "number" || typeof body?.id === "string"
+      ? body.id
+      : Date.now();
+
+  const sent = body?.sentAt ?? body?.createdAt ?? body?.time ?? body?.timestamp;
+  const created =
+    body?.createdAt ?? body?.sentAt ?? body?.time ?? body?.timestamp;
+
+  // 서버에서 type을 안 보내는 경우 기본 TEXT
+  const typ: MessageType =
+    (body?.type as MessageType) &&
+    ["TEXT", "IMAGE", "ENTER", "LEAVE"].includes(body.type)
+      ? (body.type as MessageType)
+      : "TEXT";
+
+  return {
+    messageId: msgId,
+    roomId: Number(body?.roomId ?? body?.room_id),
+    senderId: Number(body?.senderId ?? body?.sender_id ?? body?.sender),
+    senderName: String(
+      body?.senderName ?? body?.senderNickname ?? body?.sender_name ?? ""
+    ),
+    content: String(body?.content ?? body?.message ?? ""),
+    type: typ,
+    sentAt: toIso(sent),
+    createdAt: toIso(created),
+  };
+}
+
+// ✅ 연결 + 해당 room 구독
 export function connectStomp(
   roomId: number,
   onMessage: (msg: ChatMessageResponse) => void,
-  onConnect?: () => void
+  token?: string
 ) {
-  // 엔드포인트는 .env의 '.../ws'를 사용 (명세서와 일치)
-  const sock = new SockJS(WS_BASE || "/ws-stomp");
-  client = Stomp.over(sock) as CompatClient; // 콘솔 로그 억제
+  if (client?.active) return; // 이미 연결 시 무시
 
-  (client as any).debug = () => {};
-
-  client.connect({}, () => {
-    // [일치] 구독 경로
-    client?.subscribe(`/topic/chat.${roomId}`, (frame: IMessage) => {
-      try {
-        const body = JSON.parse(frame.body);
-        onMessage(body);
-      } catch (e) {
-        console.warn("STOMP parse error", e);
-      }
-    });
-    onConnect?.();
+  client = new Client({
+    webSocketFactory: () => new SockJS(WS_BASE || "/ws-stomp"),
+    connectHeaders: token
+      ? ({ Authorization: `Bearer ${token}` } as StompHeaders)
+      : undefined,
+    // debug: (m) => console.log("[STOMP]", m),
+    onConnect: () => {
+      connected = true;
+      // 방 구독
+      const sub = client!.subscribe(
+        `/topic/chat.${roomId}`,
+        (frame: IMessage) => {
+          try {
+            const body = JSON.parse(frame.body);
+            onMessage(normalize(body));
+          } catch (e) {
+            console.warn("STOMP parse error:", e);
+          }
+        }
+      );
+      unsub = () => sub.unsubscribe();
+    },
+    onWebSocketClose: () => {
+      connected = false;
+      unsub = null;
+      // console.warn("🔌 socket closed");
+    },
+    onStompError: (f) => {
+      connected = false;
+      unsub = null;
+      console.error("❌ STOMP error:", f.headers["message"]);
+    },
   });
+
+  client.activate();
 }
 
+// ✅ 해제
 export function disconnectStomp() {
-  client?.deactivate();
-  client = null;
+  try {
+    unsub?.();
+    client?.deactivate();
+  } finally {
+    unsub = null;
+    client = null;
+    connected = false;
+  }
 }
 
-export function isConnected(): boolean {
-  return !!client && !!(client as any).connected;
+export function isConnected() {
+  return !!client?.connected && connected;
 }
 
-// (A) 헬퍼: 세 인자 버전
-export function sendChatMessage(
+/**
+ * ✅ 메시지 전송
+ * - STOMP destination: /app/chat/message
+ * - Body: { roomId, content, type }
+ * - Content-Type: application/json
+ *
+ * ChatRoomScreen 쪽에서는 sendCompat으로
+ * (roomId, myId, content) 를 넘기지만,
+ * 여기서는 백엔드 명세에 맞게 senderId는 실제 전송에서는 쓰지 않음.
+ */
+export async function sendChatMessage(
   roomId: number,
-  senderId: number, // [id].tsx는 'myId' (숫자)를 보냄
-  content: string
+  senderId: number, // 넘어오지만 실제 payload에는 포함 X
+  content: string,
+  type: MessageType = "TEXT",
+  senderName?: string // 이것도 전송 X (백엔드 DTO에 없음)
 ) {
-  if (!client || !(client as any).connected) return; // 전송 데이터를 명세서에 맞게 수정
+  if (!client || !client.connected) throw new Error("STOMP not connected");
 
   const payload = {
-    roomId: String(roomId), // 명세서: String
-    sender: String(senderId), // 명세서: String (숫자 ID를 문자열로 변환)
-    content: content, // 명세서: String
-  }; // 🛑 [수정 완료] 전송 경로에서 "/app" 제거
+    roomId, // Long
+    content, // String
+    type, // "TEXT" | "IMAGE" ...
+  };
 
-  (client as any).send(
-    `/chat.sendMessage.${roomId}`, // 명세서와 일치
-    {},
-    JSON.stringify(payload)
-  );
-}
-
-// (B) 페이로드 통째로 보내는 버전 (이 함수는 현재 사용되지 않음)
-export function publishMessage(payload: ChatPayload) {
-  // ... (만약 이 함수도 사용한다면 위와 같이 수정 필요) ...
+  client.publish({
+    destination: "/app/chat/message",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 }
