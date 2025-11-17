@@ -65,3 +65,5 @@ application.yml
 *.key
 *.pem
 *.cer
+
+/bin/
