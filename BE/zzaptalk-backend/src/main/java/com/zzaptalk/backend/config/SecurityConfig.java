@@ -43,13 +43,22 @@ public class SecurityConfig {
 
                 // 인가(접근 권한) 설정
                 .authorizeHttpRequests(auth -> auth
+
                         // 회원가입, 로그인, WebSocket 경로는 인증 없이 접근 허용
                         .requestMatchers(
                                 "/api/v1/users/signup",
                                 "/api/v1/users/login",
-                                "/ws/**").permitAll()
+                                "/ws/**"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                               // WebSocket 연결 엔드포인트
+                                "/api/chat/rooms/**"    // 채팅방 관련 API
+                        ).authenticated()
+
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
+
                 )
 
                 // JWT 인증 필터 등록
@@ -68,13 +77,14 @@ public class SecurityConfig {
                                     "http://localhost:3000",
                                     "http://localhost:8081",    // 민서 React 포트
                                     "https://zzaptalk.com/",
+                                    "https://zzaptalk.pages.dev",
                                     "https://libelously-reliant-garland.ngrok-free.dev"));    // ngrok
                             // 모든 메서드(POST, GET 등) 허용
                             config.setAllowedMethods(Arrays.asList("POST", "GET", "PUT", "DELETE", "OPTIONS"));
-                            // 인증 정보(쿠키, 헤더) 전송 허용
-                            config.setAllowCredentials(true);
                             // 모든 헤더 허용
                             config.setAllowedHeaders(Arrays.asList("*"));
+                            // 인증 정보(쿠키, 헤더) 전송 허용
+                            config.setAllowCredentials(true);
                             return config;
                         })
                 );
