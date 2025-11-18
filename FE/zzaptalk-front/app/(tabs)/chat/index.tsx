@@ -125,7 +125,7 @@ export default function ChatListScreen() {
 
   return (
     <View style={styles.safeArea}>
-      {/* 상단 헤더 */}
+      {/* 상단 더 */}
       <View style={styles.header}>
         <View style={styles.headerLeft} />
         <Text style={styles.headerTitle}>채팅</Text>
