@@ -1,7 +1,7 @@
 package com.zzaptalk.backend.service;
 
-import com.zzaptalk.backend.repository.UserRepository;
 import com.zzaptalk.backend.entity.User;
+import com.zzaptalk.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,9 +15,6 @@ import org.springframework.stereotype.Service;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-
-    // Spring Security에서 사용자를 인증할 때 JWT 토큰의 Subject(식별자, ID)를 통해 호출
-    // Subject(username)는 Long 타입의 User ID를 문자열로 변환한 값
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -49,5 +46,4 @@ public class CustomUserDetailsService implements UserDetailsService {
     private UserDetails createUserDetails(User user) {
         return new CustomUserDetails(user);
     }
-
 }

@@ -53,4 +53,24 @@ public class User {
     @Column(unique = true)
     private String zzapID;
 
+// -------------------------------------------------------------------------
+// 친구 프로필 및 생일 기능용 필드
+// -------------------------------------------------------------------------
+    // 이거 다시 봐야될듯!!/////////////////////////////////
+    // 생일 (LocalDate 타입) - rrn에서 파싱하여 저장하거나 동적 계산
+    @Column
+    private java.time.LocalDate birthday;
+
+    // 상태 메시지
+    @Column(length = 500)
+    private String statusMessage;
+
+    // 프로필 사진 URL
+    @Column
+    private String profilePhotoUrl;
+
+    // 배경 사진 URL
+    @Column
+    private String backgroundPhotoUrl;
+
 }
