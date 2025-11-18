@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="23a3f307-7a46-40d2-9296-a76f7eb19bb1" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/controller/ChatRoomController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/AuthResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/ChatMessageRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/ChatMessageResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/ChatRoomCreationResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/ChatRoomResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/ChatRoomUserListResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/GroupChatRoomRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/dto/SingleChatRoomRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/ChatMessage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/ChatRoom.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/ChatRoomType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/ChatRoomUser.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/MessageType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/jwt/JwtChannelInterceptor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/repository/ChatMessageRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/repository/ChatRoomRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/repository/ChatRoomUserRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/service/ChatMessageService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/service/ChatRoomService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/util/SecurityUtil.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/app/chat/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/lib/authSession.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/lib/authStorage.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/lib/jwt.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/services/chat.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/styles/chat/ChatList.module.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/types/chat.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/config/WebConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/config/WebConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/config/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/config/WebSocketConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/controller/ChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/controller/ChatController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/controller/UserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/controller/UserController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/service/CustomUserDetails.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/service/CustomUserDetails.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/service/CustomUserDetailsService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/service/CustomUserDetailsService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/util/JwtTokenProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/zzaptalk-backend/src/main/java/com/zzaptalk/backend/util/JwtTokenProvider.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/app/chat/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/app/chat/[id].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/app/screens/LoginScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/app/screens/LoginScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/app/screens/SignupScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/app/screens/SignupScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/components/chat/MessageBubble.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/components/chat/MessageBubble.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/declarations.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/declarations.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/lib/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/services/auth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/services/auth.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/services/socket.ts" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/services/socket.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/styles/chat/MessageBubble.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/styles/chat/MessageBubble.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FE/zzaptalk-front/src/styles/loginsignup/Login.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/FE/zzaptalk-front/src/styles/loginsignup/Login.module.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;yeonseong0224&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/1y29h/zzapTalk.git&quot;,
+    &quot;accountId&quot;: &quot;9115367b-c8ff-41a8-8fdd-21792558b6b6&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="35S9MOlYufJsK3Y8DRutAHxSODG" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "Merging yeonseong",
+    "kotlin-language-version-configured": "true",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-125ca727e0f0-intellij.indexing.shared.core-IU-243.24978.46" />
+        <option value="bundled-js-predefined-d6986cc7102b-76f8388c3a79-JavaScript-IU-243.24978.46" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="23a3f307-7a46-40d2-9296-a76f7eb19bb1" name="Changes" comment="" />
+      <created>1763092558991</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1763092558991</updated>
+      <workItem from="1763092560258" duration="23000" />
+      <workItem from="1763361142966" duration="32000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
