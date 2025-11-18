@@ -82,7 +82,7 @@ export function connectStomp(
       connected = true;
       // 방 구독
       const sub = client!.subscribe(
-        `/topic/chat.${roomId}`,
+        `/topic/chatlist.${roomId}`,
         (frame: IMessage) => {
           try {
             const body = JSON.parse(frame.body);

@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import {
   Stack,
   usePathname,
@@ -10,12 +9,9 @@ import { Platform, View, ActivityIndicator } from "react-native";
 import { restoreSession, onAuthChange } from "../src/lib/authSession";
 import { useFonts } from "expo-font";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import "../global-icons.css"; // 웹용 아이콘 폰트(css) 로드
+import "../global-icons.css";
 
-/** 로그인 없이 접근 가능한 공개 경로 */
 const PUBLIC = new Set<string>(["/login", "/signup"]);
-
-/** 경로 정규화 */
 const norm = (p: string) => {
   const q = p.split("?")[0].split("#")[0];
   return q === "/" ? "/" : q.replace(/\/+$/, "");
@@ -30,19 +26,11 @@ export default function RootLayout() {
   const [loggedIn, setLoggedIn] = useState(false);
   const lastRedirect = useRef<string>("");
 
-  // 👇 아이콘 폰트 로딩 부분만 수정
   const isWeb = Platform.OS === "web";
-
   const [fontsLoaded] = useFonts(
-    isWeb
-      ? {} // 웹에서는 expo-font로 아이콘 폰트 로드 X (global-icons.css 사용)
-      : {
-          ...Ionicons.font,
-          ...MaterialIcons.font,
-        }
+    isWeb ? {} : { ...Ionicons.font, ...MaterialIcons.font }
   );
 
-  // (선택) 웹에서 포커스 잔상 제거
   useEffect(() => {
     if (Platform.OS !== "web") return;
     try {
@@ -50,11 +38,10 @@ export default function RootLayout() {
     } catch {}
   }, [pathname]);
 
-  /** 세션 복구 & 로그인 상태 구독 */
   useEffect(() => {
     let alive = true;
     (async () => {
-      const ok = await restoreSession(); // 토큰 복원 + axios Authorization 세팅
+      const ok = await restoreSession();
       if (!alive) return;
       setLoggedIn(!!ok);
       setReady(true);
@@ -66,21 +53,18 @@ export default function RootLayout() {
     };
   }, []);
 
-  /** 라우팅 가드 */
   useEffect(() => {
     if (!rootNav?.key || !ready) return;
 
     const curr = norm(pathname);
     let to: string | null = null;
 
-    // 🔒 미로그인: 공개 경로만 허용
     if (!loggedIn && !PUBLIC.has(curr)) {
       to = "/login";
     }
 
-    // 🔓 로그인 후 로그인/회원가입에 있으면 채팅으로
     if (loggedIn && (curr === "/login" || curr === "/signup")) {
-      to = "/chat";
+      to = "/chatlist";
     }
 
     if (to && to !== curr && lastRedirect.current !== to) {
@@ -91,7 +75,13 @@ export default function RootLayout() {
 
   if (!fontsLoaded || !ready) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator />
       </View>
     );

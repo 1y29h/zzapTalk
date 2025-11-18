@@ -1,4 +1,3 @@
-// app/(tabs)/_layout.tsx
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,25 +18,22 @@ export default function TabsLayout() {
         },
       }}
     >
-      {/* 친구 목록 탭 */}
       <Tabs.Screen
         name="friends/index"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
-          title: "친구",
         }}
       />
 
-      {/* 채팅 목록 탭 */}
+      {/* 🔥 chat → chatlist 로 변경 */}
       <Tabs.Screen
         name="chatlist/index"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-outline" size={size} color={color} />
           ),
-          title: "채팅",
         }}
       />
     </Tabs>

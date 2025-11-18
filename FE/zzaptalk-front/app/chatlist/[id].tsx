@@ -142,7 +142,7 @@ export default function ChatRoomScreen() {
       if (st === 401) return redirectOnce("/login" as Href);
       if (st === 403) {
         Alert.alert("접근 불가", "이 방의 메시지를 볼 권한이 없어요.");
-        return redirectOnce("/chat" as Href);
+        return redirectOnce("/chatlist" as Href);
       }
       Alert.alert("오류", e?.message || "불러오기 실패");
     } finally {
@@ -167,7 +167,7 @@ export default function ChatRoomScreen() {
       }
       if (st === 403) {
         Alert.alert("접근 불가", "이 방의 메시지를 볼 권한이 없어요.");
-        redirectOnce("/chat" as Href);
+        redirectOnce("/chatlist" as Href);
         return;
       }
       Alert.alert("동기화 실패", e?.message || "메시지를 갱신하지 못했어요.");
@@ -182,7 +182,7 @@ export default function ChatRoomScreen() {
   }, [navReady, initialLoad]);
 
   if (!navReady) return null;
-  if (!Number.isFinite(roomId)) return <Redirect href={"/chat" as Href} />;
+  if (!Number.isFinite(roomId)) return <Redirect href={"/chatlist" as Href} />;
 
   // 소켓
   useEffect(() => {

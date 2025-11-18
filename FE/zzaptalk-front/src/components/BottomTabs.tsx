@@ -43,19 +43,19 @@ export default function BottomTabs() {
       </Pressable>
 
       <Pressable
-        onPress={() => go("/chat" as Href)}
+        onPress={() => go("/chatlist" as Href)}
         style={{ alignItems: "center", justifyContent: "center", gap: 2 }}
       >
         <Ionicons
           name="chatbubble-ellipses"
           size={22}
-          color={active("/chat") ? "#7C74FF" : "#8B8B8B"}
+          color={active("/chatlist") ? "#7C74FF" : "#8B8B8B"}
         />
         <Text
           style={{
             fontSize: 11,
-            color: active("/chat") ? "#7C74FF" : "#8B8B8B",
-            fontWeight: active("/chat") ? "700" : "500",
+            color: active("/chatlist") ? "#7C74FF" : "#8B8B8B",
+            fontWeight: active("/chatlist") ? "700" : "500",
           }}
         >
           채팅
