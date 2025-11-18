@@ -3,6 +3,7 @@ package com.zzaptalk.backend.repository;
 import com.zzaptalk.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -27,5 +28,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // ZzapTalk ID로 사용자 찾기
     Optional<User> findByZzapID(String zzapID);
+
+// -------------------------------------------------------------------------
+// 주소록 동기화 (친구 자동 추가)
+// -------------------------------------------------------------------------
+
+    // 전화번호 목록(List)으로 여러 사용자 한 번에 찾기
+    List<User> findByPhoneNumIn(List<String> phoneNumbers);
+
+
 
 }

@@ -4,11 +4,13 @@ import com.zzaptalk.backend.dto.UserLoginRequest;
 import com.zzaptalk.backend.dto.UserSignUpRequest;
 import com.zzaptalk.backend.entity.User;
 import com.zzaptalk.backend.repository.UserRepository;
+import com.zzaptalk.backend.util.BirthdayUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Service
@@ -33,6 +35,8 @@ public class UserService {
 
         // 비밀번호 단방향 암호화(해싱)
         String encodedPwd = passwordEncoder.encode(request.getPwd());
+        // 생일 계산 (추가)
+        LocalDate birthday = BirthdayUtil.parseBirthdayFromRrn(request.getRrn());
 
         // User 엔티티 생성
         User newUser = User.builder()
@@ -41,6 +45,7 @@ public class UserService {
                 .name(request.getName())
                 .nickname(request.getName())    // 닉네임 초기 설정: 본명
                 .rrn(request.getRrn())
+                .birthday(birthday)  // ← 이 줄 추가
                 .email(null)
                 .zzapID(null)
                 .build();
