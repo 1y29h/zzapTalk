@@ -1,18 +1,21 @@
 package com.zzaptalk.backend.controller;
 
-import com.zzaptalk.backend.dto.AuthResponse;
-import com.zzaptalk.backend.dto.UserLoginRequest;
-import com.zzaptalk.backend.dto.UserSignUpRequest;
+import com.zzaptalk.backend.dto.*;
 import com.zzaptalk.backend.entity.User;
+import com.zzaptalk.backend.service.CustomUserDetails;
+import com.zzaptalk.backend.service.ProfileService;
 import com.zzaptalk.backend.service.UserService;
 import com.zzaptalk.backend.util.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.zzaptalk.backend.dto.MyProfileResponse;
+import com.zzaptalk.backend.dto.UpdateProfileRequest;
 
 
 @RestController
@@ -22,6 +25,7 @@ public class UserController {
 
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final ProfileService profileService;
 
     // -------------------------------------------------------------------------
     // 회원가입(Sign Up) API 엔드포인트
@@ -116,4 +120,47 @@ public class UserController {
 
     }
 
+// -------------------------------------------------------------------------
+// 본인 프로필 조회 API
+// GET /api/v1/users/profile
+// -------------------------------------------------------------------------
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getMyProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            MyProfileResponse profile = profileService.getMyProfile(
+                    userDetails.getUserId()
+            );
+            return ResponseEntity.ok(profile);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("프로필 조회 중 오류가 발생했습니다.");
+        }
+    }
+
+// -------------------------------------------------------------------------
+// 본인 프로필 수정 API
+// PUT /api/v1/users/profile
+// -------------------------------------------------------------------------
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateMyProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        try {
+            MyProfileResponse updatedProfile = profileService.updateMyProfile(
+                    userDetails.getUserId(),
+                    request
+            ); // 전달받은 업데이트 정보로 User 엔티티 수정 -> 결과를 MyProfileResponse 로 반환
+            return ResponseEntity.ok(updatedProfile);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("프로필 수정 중 오류가 발생했습니다.");
+        }
+    }
 }

@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -203,7 +202,7 @@ public class FriendService {
     // 4. 친구 프로필 조회
     // =========================================================================
     @Transactional(readOnly = true)
-    public UserProfileDto getFriendProfile(User currentUser, Long friendUserId) {
+    public FriendProfileDto getFriendProfile(User currentUser, Long friendUserId) {
 
         // 1. 친구 찾기
         User friend = userRepository.findById(friendUserId)
@@ -215,7 +214,7 @@ public class FriendService {
         }
 
         // 3. DTO 변환
-        return UserProfileDto.builder()
+        return FriendProfileDto.builder()
                 .userId(friend.getId())
                 .name(friend.getName())
                 .nickname(friend.getNickname())

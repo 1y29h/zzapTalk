@@ -12,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+// 추가 (프로필 본인/친구 분리)
+import com.zzaptalk.backend.dto.FriendProfileDto;
+
 import java.util.List;
 
 @RestController
@@ -87,7 +90,7 @@ public class FriendController {
             @PathVariable("friendId") Long friendId
     ) {
         try {
-            UserProfileDto profile = friendService.getFriendProfile(
+            FriendProfileDto profile = friendService.getFriendProfile(
                     userDetails.getUser(),
                     friendId
             );
