@@ -5,7 +5,8 @@ import type { ChatMessageResponse, MessageType } from "../types/chat";
 
 // .env 예) EXPO_PUBLIC_WS_BASE=https://api.zzaptalk.com/ws-stomp  (뒤에 / 없음)
 const WS_BASE = (
-  process.env.EXPO_PUBLIC_WS_BASE || "https://api.zzaptalk.com/ws"
+  process.env.EXPO_PUBLIC_WS_BASE ||
+  "https://libelously-reliant-garland.ngrok-free.dev/ws"
 ).replace(/\/+$/, "");
 
 // 내부 상태

@@ -18,9 +18,7 @@ export class ApiError extends Error {
 /** ===============================
  *  BASE URL (.env)
  * =============================== */
-const rawBase =
-  process.env.EXPO_PUBLIC_API_BASE ||
-  "https://libelously-reliant-garland.ngrok-free.dev";
+const rawBase = process.env.EXPO_PUBLIC_API_BASE || "https://api.zzaptalk.com";
 if (!rawBase) {
   // eslint-disable-next-line no-console
   console.warn(
