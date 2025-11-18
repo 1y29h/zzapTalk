@@ -2,7 +2,6 @@ package com.zzaptalk.backend.util;
 
 import com.zzaptalk.backend.repository.UserRepository;
 import com.zzaptalk.backend.entity.User;
-import com.zzaptalk.backend.service.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,7 +11,6 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class SecurityUtil {
-
 
     private final UserRepository userRepository;
 
