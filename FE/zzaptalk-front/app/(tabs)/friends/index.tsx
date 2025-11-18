@@ -17,7 +17,11 @@ import { Ionicons } from "@expo/vector-icons";
 import styles from "../../../src/styles/friends/Friends.module";
 import modalStyles from "../../../src/styles/friends/FriendAddModal.module";
 
-import { getFriendList, addFriend } from "../../../src/services/friends";
+import {
+  getFriendList,
+  addFriend,
+  deleteFriend,
+} from "../../../src/services/friends";
 import type { FriendListResponseDto } from "../../../src/types/friends";
 
 type Friend = {
@@ -129,6 +133,32 @@ export default function FriendsScreen() {
     }
   };
 
+  // 🔹 친구 삭제 처리 (친구 항목 길게 누르면 삭제)
+  const handleDeleteFriend = (friendId: number) => {
+    Alert.alert("친구 삭제", "정말 이 친구를 삭제할까요?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteFriend(friendId); // ← 이제 void
+
+            // 목록에서 제거
+            setFriends((prev) => prev.filter((f) => f.id !== friendId));
+
+            Alert.alert("완료", "친구가 삭제되었습니다.");
+          } catch (e: any) {
+            Alert.alert(
+              "오류",
+              e?.message || "친구 삭제 중 오류가 발생했어요."
+            );
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -177,7 +207,11 @@ export default function FriendsScreen() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.friendList}
           renderItem={({ item }) => (
-            <Pressable style={styles.friendRow}>
+            // 🔹 친구 항목 길게 누르면 삭제 알럿
+            <Pressable
+              style={styles.friendRow}
+              onLongPress={() => handleDeleteFriend(item.id)}
+            >
               <View style={styles.friendAvatar}>
                 <Text style={styles.friendAvatarInitial}>
                   {item.name.charAt(0)}

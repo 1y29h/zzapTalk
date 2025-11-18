@@ -27,3 +27,12 @@ export async function addFriend(payload: AddFriendPayload): Promise<string> {
   // axios가 data를 string으로 주도록 보장
   return typeof res.data === "string" ? res.data : String(res.data);
 }
+
+/** 친구 삭제 */
+export async function deleteFriend(friendId: number): Promise<void> {
+  if (!friendId && friendId !== 0) {
+    throw new ApiError("삭제할 친구 ID가 없습니다.", 400, null);
+  }
+
+  await del(`/api/v1/friends/${friendId}`);
+}

@@ -77,10 +77,28 @@ export default function LoginScreen() {
 
       // 4) 홈으로 이동 (index → /chat으로 보냄)
       router.replace("/");
-    } catch (err) {
+    } catch (err: any) {
       console.error("로그인 실패:", err);
-      if (err instanceof ApiError) setErrorMsg(err.message);
-      else setErrorMsg("로그인 중 문제가 발생했습니다.");
+
+      if (err instanceof ApiError) {
+        // 400 / 401: 아이디·비번 문제
+        if (err.status === 400 || err.status === 401) {
+          setErrorMsg("전화번호 또는 비밀번호를 다시 확인해 주세요.");
+        }
+        // 5xx, 네트워크(0): 서버/통신 문제
+        else if (err.status >= 500 || err.status === 0) {
+          setErrorMsg(
+            "서버 오류로 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요."
+          );
+        }
+        // 그 외 코드들
+        else {
+          setErrorMsg("로그인에 실패했습니다. 다시 시도해 주세요.");
+        }
+      } else {
+        // ApiError 가 아닌 예외
+        setErrorMsg("로그인에 실패했습니다. 네트워크 상태를 확인해 주세요.");
+      }
     } finally {
       setLoading(false);
     }

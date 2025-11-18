@@ -15,8 +15,12 @@ import {
 import { useRouter, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { getChatRoomList } from "../../../src/services/chat";
+import {
+  getChatRoomList,
+  createOrGetSingleChatRoom,
+} from "../../../src/services/chat";
 import type { ChatRoomUserListItem } from "../../../src/types/chat";
+import { ApiError } from "../../../src/lib/api";
 import styles from "../../../src/styles/chat/ChatList.module";
 
 export default function ChatListScreen() {
@@ -29,6 +33,7 @@ export default function ChatListScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [createTab, setCreateTab] = useState<"single" | "group">("single");
   const [partnerId, setPartnerId] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -36,7 +41,7 @@ export default function ChatListScreen() {
       const data = await getChatRoomList();
       setRooms(data);
     } catch (e) {
-      console.error(e);
+      console.error("[ChatList] 채팅방 목록 조회 실패:", e);
     } finally {
       setLoading(false);
     }
@@ -57,20 +62,66 @@ export default function ChatListScreen() {
     [router]
   );
 
-  // ✅ 개인 채팅 만들기 버튼 (여기에 나중에 API 연결하면 됨)
-  const onCreateSingle = useCallback(() => {
-    if (!partnerId.trim()) {
+  // ✅ 개인 채팅 만들기 버튼 → 실제 API 연결
+  const onCreateSingle = useCallback(async () => {
+    const trimmed = partnerId.trim();
+    if (!trimmed) {
       Alert.alert("알림", "상대 사용자 ID를 입력해 주세요.");
       return;
     }
 
-    // TODO: 여기서 /api/chat/rooms/single 호출하는 함수 연결
-    Alert.alert("개인 채팅", `상대 ID: ${partnerId}로 개인 채팅 생성 요청!`);
+    const idNum = Number(trimmed);
+    if (!Number.isFinite(idNum) || idNum <= 0) {
+      Alert.alert("알림", "상대 사용자 ID는 숫자만 입력해 주세요.");
+      return;
+    }
 
-    // 성공 후에는 시트 닫고 목록 새로고침 같은 거 하면 됨
-    setShowCreate(false);
-    setPartnerId("");
-  }, [partnerId]);
+    try {
+      setCreating(true);
+
+      // 1:1 채팅방 조회/생성 API 호출
+      const room = await createOrGetSingleChatRoom(idNum);
+
+      const roomId = (room as any).roomId ?? (room as any).id;
+      const roomName =
+        (room as any).roomName ??
+        (room as any).title ??
+        (room as any).name ??
+        undefined;
+
+      if (!roomId) {
+        Alert.alert("오류", "생성된 채팅방 ID를 찾을 수 없어요.");
+        return;
+      }
+
+      // 시트 닫고 입력 초기화
+      setShowCreate(false);
+      setPartnerId("");
+
+      // 목록 새로고침
+      await load();
+
+      // 해당 채팅방으로 이동
+      goRoom(roomId, roomName);
+    } catch (err: any) {
+      console.error("[ChatList] 1:1 채팅방 생성 실패:", err);
+
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          Alert.alert("로그인이 필요합니다.", "다시 로그인해 주세요.");
+        } else {
+          Alert.alert("채팅방 생성 실패", err.message || "다시 시도해 주세요.");
+        }
+      } else {
+        Alert.alert(
+          "채팅방 생성 실패",
+          "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        );
+      }
+    } finally {
+      setCreating(false);
+    }
+  }, [partnerId, load, goRoom]);
 
   return (
     <View style={styles.safeArea}>
@@ -176,7 +227,7 @@ export default function ChatListScreen() {
               </Pressable>
             </View>
 
-            {/* 개인 채팅 폼 (현재는 개인 채팅 기준 UI만 구현) */}
+            {/* 개인 채팅 폼 */}
             {createTab === "single" && (
               <View style={styles.sheetBody}>
                 <Text style={styles.sheetLabel}>상대 사용자 ID</Text>
@@ -193,9 +244,10 @@ export default function ChatListScreen() {
                 <Pressable
                   style={styles.sheetPrimaryBtn}
                   onPress={onCreateSingle}
+                  disabled={creating}
                 >
                   <Text style={styles.sheetPrimaryBtnText}>
-                    개인 채팅 만들기
+                    {creating ? "생성 중..." : "개인 채팅 만들기"}
                   </Text>
                 </Pressable>
               </View>
