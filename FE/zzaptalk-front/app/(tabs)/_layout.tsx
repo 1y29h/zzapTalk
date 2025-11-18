@@ -19,25 +19,23 @@ export default function TabsLayout() {
         },
       }}
     >
-      {/* 친구 목록 탭 */}
+      {/* 친구 탭 */}
       <Tabs.Screen
-        name="friends/index"
+        name="friends"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
-          title: "친구",
         }}
       />
 
-      {/* 채팅 목록 탭 */}
+      {/* 채팅 탭 */}
       <Tabs.Screen
-        name="chat/index"
+        name="chat"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-outline" size={size} color={color} />
           ),
-          title: "채팅",
         }}
       />
     </Tabs>
