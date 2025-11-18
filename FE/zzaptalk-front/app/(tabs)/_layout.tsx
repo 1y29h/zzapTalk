@@ -32,7 +32,7 @@ export default function TabsLayout() {
 
       {/* 채팅 목록 탭 */}
       <Tabs.Screen
-        name="chat/index"
+        name="chatlist/index"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-outline" size={size} color={color} />
