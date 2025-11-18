@@ -14,11 +14,13 @@ public class CustomUserDetails implements UserDetails {
     private final Long userId;     // JWT 토큰의 Subject(ID)와 매핑될 실제 사용자 ID
     private final String phoneNum; // 사용자 ID 대신 토큰에 phoneNum이 포함될 경우 대비
     private final String password; // 비밀번호
+    private final User user;
 
     public CustomUserDetails(User user) {
         this.userId = user.getId();
         this.phoneNum = user.getPhoneNum();
         this.password = user.getPwd(); // 엔티티의 비밀번호 필드명 확인
+        this.user = user;
     }
 
     // (선택 사항): 전화번호가 사용자 이름으로 사용된다고 가정

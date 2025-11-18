@@ -52,7 +52,7 @@ public class JwtTokenProvider {
     public String createToken(User user) {
 
         // Claims(토큰에 담을 정보) 설정
-        // 토큰 주제(sub)는 ZzapID, email 또는 phoneNum 중 하나로 설정
+        // 토큰 주제(sub)는 User ID로 설정
         String identifier = String.valueOf(user.getId());
 
         Claims claims = Jwts.claims().setSubject(identifier);
