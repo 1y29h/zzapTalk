@@ -104,4 +104,15 @@ public class UserService {
 
     }
 
+    // -------------------------------------------------------------------------
+    // 사용자 조회
+    // -------------------------------------------------------------------------
+
+    @Transactional(readOnly = true)
+    public User findUserByPhoneNum(String phoneNum) {
+        return userRepository.findByPhoneNum(phoneNum)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + phoneNum));
+    }
+
+
 }
