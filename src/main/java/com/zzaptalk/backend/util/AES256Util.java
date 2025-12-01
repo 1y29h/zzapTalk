@@ -1,4 +1,4 @@
-package com.zzaptalk.backend.util; // 예시 패키지
+package com.zzaptalk.backend.util;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,17 +22,24 @@ public class AES256Util {
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
 
     // IV(Initialization Vector): 키 길이의 절반인 16바이트 필요(무작위 문자열)
-    private static final String IV = "pL2;sNhAKY12e90N";
+    private static final String IV = "vokUgYNn+lQz4gM/+5ylkg==";
 
     // Spring Bean 초기화 후 바로 실행되어 keySpec과 ivSpec을 설정
     @PostConstruct
     public void init() {
-        // 비밀 키를 사용하여 KeySpec 객체 생성
-        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = new byte[32];
+        byte[] secretBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+
+        int len = Math.min(secretBytes.length, keyBytes.length);
+        System.arraycopy(secretBytes, 0, keyBytes, 0, len);
+
         this.keySpec = new SecretKeySpec(keyBytes, "AES");
 
-        // IV를 사용하여 IvParameterSpec 객체 생성
-        this.ivSpec = new IvParameterSpec(IV.getBytes(StandardCharsets.UTF_8));
+        byte[] iv = new byte[16];
+        System.arraycopy(keyBytes, 0, iv, 0, 16);
+        this.ivSpec = new IvParameterSpec(iv);
+
+        AES256Converter.setAES256Util(this);
     }
 
     // -------------------------------------------------------------------------

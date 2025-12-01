@@ -46,7 +46,7 @@ public class UserService {
     @Transactional
     public void signUp(UserSignUpRequest request) {
 
-        // 전화번호 중복 검사 (활성 계정)
+        // 전화번호 중복 검사
         if (userRepository.existsByPhoneNum(request.getPhoneNum())) {
             throw new IllegalArgumentException("이미 가입된 전화번호입니다.");
         }
@@ -121,7 +121,12 @@ public class UserService {
         throw new IllegalArgumentException("로그인 식별자(전화번호/이메일/ZzapID) 중 하나를 입력해야 합니다.");
     }
 
-    // UserService.java 에 있어야 할 메서드
+    @Transactional(readOnly = true)
+    public User findUserByPhoneNum(String phoneNum) {
+        return userRepository.findByPhoneNum(phoneNum)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + phoneNum));
+    }
+
     @Transactional(readOnly = true)
     public User findById(Long userId) {
         return userRepository.findById(userId)

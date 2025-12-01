@@ -14,7 +14,7 @@ public class SecurityUtil {
 
     private final UserRepository userRepository;
 
-    // 현재 Spring Security Context에 저장된 사용자의 phoneNum을 기반으로 User 엔티티 반환
+    // 현재 Spring Security Context에 저장된 사용자의 userId을 기반으로 User 엔티티 반환
     // @return 로그인된 사용자 User 엔티티(Optional)
 
     public Optional<User> getCurrentUser() {
@@ -27,11 +27,17 @@ public class SecurityUtil {
             return Optional.empty();
         }
 
-        // Authentication 객체의 phoneNum 가져오기
-        String phoneNum = authentication.getName();
+        // 수정 후 (교체):
+        // Authentication 객체의 userId 가져오기 (String 형태)
+        Long userId;
+        try {
+            userId = Long.valueOf(authentication.getName());
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
 
-        // phoneNum으로 DB에서 User 엔티티 찾기
-        return userRepository.findByPhoneNum(phoneNum);
+        // userId로 DB에서 User 엔티티 찾기
+        return userRepository.findById(userId);
 
     }
 

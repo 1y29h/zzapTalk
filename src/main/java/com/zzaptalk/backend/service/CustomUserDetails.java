@@ -24,10 +24,10 @@ public class CustomUserDetails implements UserDetails {
         this.user = user;
     }
 
-    // (선택 사항): 전화번호가 사용자 이름으로 사용된다고 가정
     @Override
     public String getUsername() {
-        return this.phoneNum;
+        return String.valueOf(this.userId);
+        // return this.phoneNum;
     }
 
     // 비밀번호 반환
@@ -39,7 +39,7 @@ public class CustomUserDetails implements UserDetails {
     // 권한 설정 (일반 사용자 권한만 부여)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // 단순 구현 시 권한은 비워둡니다.
+        return Collections.emptyList();
     }
 
     // 계정 만료, 잠금, 자격 증명 만료, 활성화 여부는 필요에 따라 true로 설정

@@ -28,7 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPhoneNum(@Param("phoneNum") String phoneNum);
 
     // 조회 실패 가능성 때문에 Optional 사용
-    //Optional<User> findByPhoneNum(String phoneNum);
+    // Optional<User> findByPhoneNum(String phoneNum);
 
     // 이메일로 사용자 찾기
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.status = 'ACTIVE'")

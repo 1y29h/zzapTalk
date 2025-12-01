@@ -96,13 +96,21 @@ public class UserController {
                     .nickname(loggedInUser.getNickname())
                     .build();
 
+            // HTTP 200 OK 응답과 함께 토큰 반환
             return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
+        }
+
+        catch (IllegalArgumentException e) {
+            // 사용자 정보 불일치(ID/비밀번호 오류) 예외 처리(400 Bad Request)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
+        }
+
+        catch (Exception e) {
+            // 기타 서버 오류 처리(500 Internal Server Error)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("로그인 중 서버 오류가 발생했습니다.");
         }
+
     }
 
     // -------------------------------------------------------------------------

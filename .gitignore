@@ -2,10 +2,13 @@
 # BUILD ARTIFACTS (빌드 및 컴파일 결과물)
 # =========================================================================
 
+target/
 /target/
 /build/
 /bin/
 
+build/
+out/
 *.jar
 *.war
 *.ear
@@ -53,7 +56,9 @@
 # IDE FILES (통합 개발 환경 파일)
 # =========================================================================
 
+*.tmp
 .idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
@@ -61,19 +66,22 @@
 .apt_generated
 .classpath
 .project
-.vscode/
 
 # =========================================================================
 # 민감한 정보 및 환경 설정
 # =========================================================================
 
 # 운영/개발 환경 설정 파일
+*.env
+.env.*
+
+application-secret.yml
+application-local.yml
 application-prod.yml
 application-prod.properties
 application-dev.yml
 application-dev.properties
 application.yml
-application-local.yml
 application-local.properties
 
 # 키 파일 및 시크릿
@@ -81,6 +89,27 @@ application-local.properties
 *.pem
 *.cer
 
+data/
+data/mysql/
+*.db
+*.sql
+
+# =========================================================================
+# Docker
+# =========================================================================
 # 프론트엔드 빌드 결과물 무시
 src/main/resources/static/assets/
 node_modules/
+
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+docker-compose.yaml
+
+# Docker 관련 디렉토리
+docker/
+docker-compose*.yml
+docker-compose*.yaml
+../docker-compose.yml
+docker-compose.local.yml
+docker-compose.override.yml

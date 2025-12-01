@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,7 +56,7 @@ public class FriendService {
             classifier.classify(dto, fs);
         }
 
-        // 5. 결과 반환
+        // 3. 결과 반환
         return classifier.buildResponse();
     }
 
@@ -216,9 +217,11 @@ public class FriendService {
     @Transactional(readOnly = true)
     public FriendProfileDto getFriendProfile(User currentUser, Long friendUserId) {
 
+        // 1. 친구 찾기
         User friend = userRepository.findById(friendUserId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
+        // 2. 친구 관계 확인
         if (!friendshipRepository.existsByUserAndFriend(currentUser, friend)) {
             throw new IllegalArgumentException("친구 관계가 아닙니다.");
         }
@@ -242,7 +245,6 @@ public class FriendService {
                 .birthday(friend.getBirthday())
                 .build();
     }
-
 
     // =========================================================================
     // 5. 친구 설정 업데이트 (즐겨찾기)
@@ -325,6 +327,4 @@ public class FriendService {
 
         friendshipRepository.delete(friendship);
     }
-
-
 }

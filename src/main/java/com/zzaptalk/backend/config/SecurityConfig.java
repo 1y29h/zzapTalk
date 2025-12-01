@@ -58,16 +58,30 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // 회원가입, 로그인, WebSocket 경로는 인증 없이 접근 허용
+
                         .requestMatchers(
+                                // 루트 접근
+                                "/",
+                                "/index.html",
+                                "/static/**",
+                                "/favicon.ico",
+                                "/actuator/health",
+                                "/error",
+                                // 프론트 리소스 경로
+                                "/assets/**",    // Vite 빌드 결과물
+                                "/*.js",         // 루트에 있는 JS 파일
+                                "/*.css",
+                                "/*.svg",
+                                // 회원가입, 로그인, WebSocket 인증 없이 접근 허용
                                 "/api/v1/users/signup",
                                 "/api/v1/users/login",
                                 "/api/v1/users/refresh",
-                                "/ws/**",
-                                "/redis-test"
+                                "/ws/**"
                         ).permitAll()
 
+                        // 채팅방 관련 API
                         .requestMatchers(
-                                "/api/chat/rooms/**"    // 채팅방 관련 API
+                                "/api/chat/rooms/**"
                         ).authenticated()
 
                         // 그 외 모든 요청은 인증 필요
@@ -81,8 +95,6 @@ public class SecurityConfig {
                         new JwtAuthenticationFilter(jwtTokenProvider,redisService),
                         UsernamePasswordAuthenticationFilter.class
                 );
-
-        // ⭐️ 참고: 이전에 있던 길었던 .cors() 블록은 위에 .cors(Customizer.withDefaults())로 대체되었습니다.
 
         return http.build();
     }
@@ -99,7 +111,8 @@ public class SecurityConfig {
         config.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
                 "https://zzaptalk.com",
-                "https://zzaptalk.pages.dev"
+                "https://zzaptalk.pages.dev",
+                "https://api.zzaptalk.com"
         ));
 
         // 2. 허용할 HTTP 메서드 (OPTIONS는 필수)
