@@ -21,7 +21,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        // JWT 검증 오류 발생 시 클라이언트에게 올바른 응답을 전달
         try {
 
             // Request Header에서 JWT 토큰 추출

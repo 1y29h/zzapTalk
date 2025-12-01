@@ -11,22 +11,19 @@ import java.util.Collections;
 @Getter
 public class CustomUserDetails implements UserDetails {
 
-    private final Long userId;     // JWT 토큰의 Subject(ID)와 매핑될 실제 사용자 ID
-    private final String phoneNum; // 사용자 ID 대신 토큰에 phoneNum이 포함될 경우 대비
-    private final String password; // 비밀번호
     private final User user;
+    private final Long userId;
+    private final String password;
 
     public CustomUserDetails(User user) {
-        this.userId = user.getId();
-        this.phoneNum = user.getPhoneNum();
-        this.password = user.getPwd(); // 엔티티의 비밀번호 필드명 확인
         this.user = user;
+        this.userId = user.getId();
+        this.password = user.getPwd();
     }
 
-    // (선택 사항): 전화번호가 사용자 이름으로 사용된다고 가정
     @Override
     public String getUsername() {
-        return this.phoneNum;
+        return String.valueOf(this.userId);
     }
 
     // 비밀번호 반환
@@ -38,7 +35,7 @@ public class CustomUserDetails implements UserDetails {
     // 권한 설정 (일반 사용자 권한만 부여)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // 단순 구현 시 권한은 비워둡니다.
+        return Collections.emptyList();
     }
 
     // 계정 만료, 잠금, 자격 증명 만료, 활성화 여부는 필요에 따라 true로 설정
