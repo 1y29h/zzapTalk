@@ -7,6 +7,7 @@ import com.zzaptalk.backend.service.*;
 import com.zzaptalk.backend.util.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,7 +20,7 @@ import com.zzaptalk.backend.dto.UpdateProfileRequest;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -49,6 +50,7 @@ public class UserController {
 
         catch (IllegalArgumentException e) {
             // Service 계층에서 발생시킨 중복 예외 처리(400 Bad Request)
+            log.error("회원가입 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
 
