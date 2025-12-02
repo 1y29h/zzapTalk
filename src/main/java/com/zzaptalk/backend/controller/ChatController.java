@@ -14,7 +14,7 @@ import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
 
-@Slf4j  // 추가!
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ChatController {
@@ -34,12 +34,18 @@ public class ChatController {
             throw new SecurityException("인증되지 않은 사용자입니다.");
         }
 
-        // 전화번호를 문자열 그대로 사용
-        String senderPhoneNum = principal.getName();
-        log.info("발신자 전화번호: {}", senderPhoneNum);
+        Long senderId;
+        try {
+            senderId = Long.parseLong(principal.getName());
+        } catch (NumberFormatException e) {
+            log.error("Principal name이 유효한 ID 형태가 아닙니다: {}", principal.getName());
+            throw new SecurityException("유효하지 않은 사용자 인증 정보입니다.", e);
+        }
+
+        log.info("발신자 사용자 ID: {}", senderId);
 
         // User 조회 (전화번호로 찾기)
-        User sender = userService.findUserByPhoneNum(senderPhoneNum);
+        User sender = userService.findUserById(senderId);
 
         // 메시지 저장
         ChatMessage savedMessage = chatMessageService.saveAndPublishMessage(

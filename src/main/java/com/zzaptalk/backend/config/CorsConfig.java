@@ -7,32 +7,52 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
-@EnableWebSecurity
-@Profile("prod")
+@Profile("local")
 @RequiredArgsConstructor
-public class SecurityConfig {
+public class CorsConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    // =========================================================================
-    // Security 설정
-    // =========================================================================
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://localhost:*"
+        ));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // CORS는 Nginx에서 처리
-                .cors(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
 
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -40,7 +60,6 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(auth -> auth
-                        // 공개 API
                         .requestMatchers(
                                 "/actuator/health",
                                 "/error",
@@ -48,17 +67,13 @@ public class SecurityConfig {
                                 "/assets/**"
                         ).permitAll()
 
-                        // 회원 API
                         .requestMatchers("/api/v1/users/signup").permitAll()
                         .requestMatchers("/api/v1/users/login").permitAll()
 
-                        // WebSocket
                         .requestMatchers("/ws/**").permitAll()
 
-                        // OPTIONS 요청
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
 
